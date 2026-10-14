@@ -20,3 +20,9 @@ cd server && npm install && npm run dev     # http://localhost:5000
 ```
 
 The client's dev server proxies `/api` to the Express server on port 5000.
+
+## Deployment
+
+The client deploys to Vercel from this repo (`vercel.json` at the root builds
+`client/` and serves `client/dist`). Every push to `main` redeploys. The Express
+server is not deployed yet; it will need a Node host such as Render or Railway.

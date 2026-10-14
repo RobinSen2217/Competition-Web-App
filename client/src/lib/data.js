@@ -9,11 +9,25 @@ import climate from '../data/climate.json'
 import boundaries from '../data/boundaries.json'
 import mapmeta from '../data/mapmeta.json'
 import rasters from '../data/rasters.json'
+import { asset } from './asset'
 
 export const DATA = climate // { months: ["2010-01", ...], cities: { id: { name, state, lat, lon, series: { key: [..] } } } }
 export const BOUND = boundaries // { cityId: GeoJSON geometry of the district }
 export const MAPMETA = mapmeta // { region: [mosaic, mosaic], cityId: [z10, z13, z15 mosaics] }
-export const RAS = rasters // { cityId: { ndviBounds, lstBounds, years: {year: url}, change, lstDay, lstNight, values: url } }
+// The JSON stores public paths ('/map/raster/...'); resolve them against the deploy base here.
+export const RAS = Object.fromEntries(
+  Object.entries(rasters).map(([c, r]) => [
+    c,
+    {
+      ...r,
+      years: Object.fromEntries(Object.entries(r.years).map(([y, u]) => [y, asset(u)])),
+      change: asset(r.change),
+      lstDay: asset(r.lstDay),
+      lstNight: asset(r.lstNight),
+      values: asset(r.values),
+    },
+  ]),
+) // { cityId: { ndviBounds, lstBounds, years: {year: url}, change, lstDay, lstNight, values: url } }
 
 export const M = DATA.months
 export const N = M.length

@@ -1,4 +1,5 @@
 import { RAS } from '../data'
+import { asset } from '../asset'
 
 // Data layers that can be drawn over the satellite photo in the map explorer.
 // MODIS layers (green, change, heat*) exist for every city and their image URLs
@@ -15,9 +16,9 @@ export const MLAYERS = [
   { id: 'change', label: 'Change since 2010–12', ramp: { stops: ['#8c510a', '#dfc27d', '#f5f5f5', '#a6dba0', '#1b7837'], ticks: ['−0.15', '−0.05', '0', '+0.05', '+0.15'], ends: ['Lost green', 'Gained green'] }, desc: 'Average monsoon peak of 2023–25 minus 2010–12. Green pixels gained vegetation; brown pixels lost it, often to new building.' },
   { id: 'heatday', label: 'Summer heat, day', ramp: { stops: ['#fff5eb', '#fdae6b', '#e6550d', '#7f2704'], ticks: ['30', '38', '44', '50 °C'], ends: ['Cooler', 'Hotter'] }, desc: 'Average April–June daytime land surface temperature, 2022–2026, from MODIS 1 km pixels. Bare and built ground heats most.' },
   { id: 'heatnight', label: 'Summer heat, night', ramp: { stops: ['#f7fbff', '#9ecae1', '#4292c6', '#08306b'], ticks: ['18', '24', '28', '32 °C'], ends: ['Cooler', 'Warmer'] }, desc: 'Average April–June night-time land surface temperature, 2022–2026. Built-up areas hold heat after dark.' },
-  { id: 's2ndvi', label: 'NDVI 10 m', only: 'jaisalmer', img: '/map/s2_ndvi.jpg', ramp: { stops: ['#a50026', '#f46d43', '#fee08b', '#d9ef8b', '#66bd63', '#006837'], ticks: ['−0.2', '0.05', '0.3', '0.55', '0.8'], ends: ['Water / bare', 'Green'] }, desc: 'Sentinel-2 10 m greenness from the Earth Engine notebook, 2 × 2 km around Gadisar Lake. Ten times sharper than MODIS.' },
-  { id: 's2ndwi', label: 'Water (NDWI) 10 m', only: 'jaisalmer', img: '/map/s2_ndwi.jpg', ramp: { stops: ['#f7fbff', '#c6dbef', '#6baed6', '#2171b5', '#08306b'], ticks: ['−0.5', '0', '0.5'], ends: ['Dry', 'Water'] }, desc: 'Sentinel-2 water index from the notebook. Only Gadisar Lake reads as open water.' },
-  { id: 's2ndbi', label: 'Built-up (NDBI) 10 m', only: 'jaisalmer', img: '/map/s2_ndbi.jpg', ramp: { stops: ['#fff7ec', '#fdd49e', '#fc8d59', '#d7301f', '#7f0000'], ticks: ['−0.3', '0', '0.3'], ends: ['Vegetated', 'Built-up'] }, desc: 'Sentinel-2 built-up index from the notebook. Dense housing shows darkest.' },
+  { id: 's2ndvi', label: 'NDVI 10 m', only: 'jaisalmer', img: asset('/map/s2_ndvi.jpg'), ramp: { stops: ['#a50026', '#f46d43', '#fee08b', '#d9ef8b', '#66bd63', '#006837'], ticks: ['−0.2', '0.05', '0.3', '0.55', '0.8'], ends: ['Water / bare', 'Green'] }, desc: 'Sentinel-2 10 m greenness from the Earth Engine notebook, 2 × 2 km around Gadisar Lake. Ten times sharper than MODIS.' },
+  { id: 's2ndwi', label: 'Water (NDWI) 10 m', only: 'jaisalmer', img: asset('/map/s2_ndwi.jpg'), ramp: { stops: ['#f7fbff', '#c6dbef', '#6baed6', '#2171b5', '#08306b'], ticks: ['−0.5', '0', '0.5'], ends: ['Dry', 'Water'] }, desc: 'Sentinel-2 water index from the notebook. Only Gadisar Lake reads as open water.' },
+  { id: 's2ndbi', label: 'Built-up (NDBI) 10 m', only: 'jaisalmer', img: asset('/map/s2_ndbi.jpg'), ramp: { stops: ['#fff7ec', '#fdd49e', '#fc8d59', '#d7301f', '#7f0000'], ticks: ['−0.3', '0', '0.3'], ends: ['Vegetated', 'Built-up'] }, desc: 'Sentinel-2 built-up index from the notebook. Dense housing shows darkest.' },
 ]
 
 // Unknown ids (e.g. a stale value in localStorage) fall back to Greenness.
