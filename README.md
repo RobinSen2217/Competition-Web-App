@@ -11,7 +11,7 @@ that has changed since 2010, which weather drives it, and where it is heading.
 
 ## Quick start
 
-Requires Node 20.19+ (the repo pins Node 22 in `.nvmrc`).
+Requires Node 22 (pinned in `.nvmrc` and `client/package.json`).
 
 ```sh
 nvm use
@@ -23,6 +23,7 @@ The client's dev server proxies `/api` to the Express server on port 5000.
 
 ## Deployment
 
-The client deploys to Vercel from this repo (`vercel.json` at the root builds
-`client/` and serves `client/dist`). Every push to `main` redeploys. The Express
+The client deploys to Vercel from this repo (project Root Directory: `client`,
+preset: Vite; `client/vercel.json` only adds caching headers). Every push to
+`main` redeploys. The Express
 server is not deployed yet; it will need a Node host such as Render or Railway.

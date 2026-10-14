@@ -6,7 +6,7 @@ and keeps that page's markup, styles and behaviour.
 
 ## Run it
 
-Vite 8 needs **Node 20.19+**. The repo pins Node 22 in `.nvmrc`:
+Vite 8 needs Node 20.19+; the project pins **Node 22** (`.nvmrc`, `engines`):
 
 ```sh
 nvm use            # picks up .nvmrc (Node 22)
