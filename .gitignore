@@ -1,0 +1,18 @@
+# Dependencies and build output
+node_modules/
+dist/
+
+# Environment variables (secrets for the server go here, never commit them)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# OS / editor / local tool files
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.claude/
