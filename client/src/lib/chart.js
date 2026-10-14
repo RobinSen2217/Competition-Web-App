@@ -2,6 +2,7 @@
 // the container element and calls drawChart on size, option or theme changes.
 import { css } from './theme'
 import { FIRST_YEAR, MON, mOf, yOf } from './months'
+import { noteCls } from '../styles/classes'
 
 export function niceStep(x) {
   const p = Math.pow(10, Math.floor(Math.log10(x)))
@@ -23,7 +24,7 @@ export function drawChart(el, o) {
   const W = el.clientWidth || 600, H = el.clientHeight || 180, m = { l: o.yLabels === false ? 14 : 48, r: 16, t: 12, b: 26 }
   const ys = [...o.series.flatMap((s) => s.pts.map((p) => p.y)), ...(o.band || []).flatMap((b) => [b.lo, b.hi])].filter((v) => v != null && isFinite(v))
   if (!ys.length) {
-    el.innerHTML = `<div class="note" style="height:100%;display:flex;align-items:center;justify-content:center">No data for this city and period.</div>`
+    el.innerHTML = `<div class="${noteCls} flex h-full items-center justify-center">No data for this city and period.</div>`
     return null
   }
   let y0 = o.yMin ?? Math.min(...ys), y1 = o.yMax ?? Math.max(...ys)

@@ -5,6 +5,7 @@ import { mean, anom, roll, ols, corr } from '../../lib/stats'
 import { css } from '../../lib/theme'
 import { useApp } from '../../state/appContext'
 import useThemeVersion from '../../hooks/useThemeVersion'
+import { Card, CardHead, Kicker, Lede } from '../ui'
 
 /*
   "Why is greenness changing?" section.
@@ -98,40 +99,40 @@ export default function Why() {
   const landSig = Math.abs(leftTrend) > LAND_SIG
 
   return (
-    <section className="card" id="why" aria-labelledby="whyT">
-      <div className="head">
-        <div>
-          <span className="kicker">What drives the change</span>
-          <h2 id="whyT">Why is greenness changing?</h2>
-          <p className="lede">We remove the normal seasonal cycle, then test how closely month-to-month greenness follows each weather factor, allowing a delay of up to three months. What weather cannot explain is a hint of land change: irrigation, new parks, or building over green land.</p>
-        </div>
-      </div>
-      <div className="why">
-        <div className="bars" id="drivers">
-          <div className="xs muted" style={{ display: 'grid', gridTemplateColumns: '150px 1fr 64px', gap: 12 }}>
+    <Card id="why" aria-labelledby="whyT">
+      <CardHead>
+        <Kicker>What drives the change</Kicker>
+        <h2 id="whyT">Why is greenness changing?</h2>
+        <Lede>We remove the normal seasonal cycle, then test how closely month-to-month greenness follows each weather factor, allowing a delay of up to three months. What weather cannot explain is a hint of land change: irrigation, new parks, or building over green land.</Lede>
+      </CardHead>
+      {/* Bars beside the story; stacked on narrow screens */}
+      <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-6 max-[901px]:grid-cols-[minmax(0,1fr)]">
+        <div className="flex flex-col gap-3" id="drivers">
+          {/* Column headings. Unlike the bar rows, this keeps its columns on small screens. */}
+          <div className="grid grid-cols-[150px_1fr_64px] gap-3 text-[13px] text-muted">
             <span>Factor</span>
             <span>How closely greenness follows it</span>
-            <span style={{ textAlign: 'right' }}>Link</span>
+            <span className="text-right">Link</span>
           </div>
           {res.map((x) => (
-            <div className="bar" key={x.k}>
+            <div className="grid grid-cols-[150px_minmax(0,1fr)_64px] items-center gap-3 text-[14px] max-[521px]:grid-cols-[110px_minmax(0,1fr)_52px]" key={x.k}>
               <span>
                 {x.lab}
                 <br />
-                <span className="xs muted">{lagText(x.lag)}{x.r < 0 ? ' · opposite' : ''}</span>
+                <span className="text-[13px] text-muted">{lagText(x.lag)}{x.r < 0 ? ' · opposite' : ''}</span>
               </span>
-              <div className="track">
+              <div className="h-3.5 overflow-hidden rounded-full bg-surface2">
                 {/* Bar length is |r| on a 0–1 scale; orange (--s3) marks an inverse link */}
-                <div className="fill" style={{ width: Math.abs(x.r) * 100 + '%', background: x.r < 0 ? css('--s3') : css('--s1') }} />
+                <div className="h-full rounded-full bg-accent transition-[width] duration-500 ease-[ease]" style={{ width: Math.abs(x.r) * 100 + '%', background: x.r < 0 ? css('--s3') : css('--s1') }} />
               </div>
-              <span className="v">{signed(x.r, 2)}</span>
+              <span className="text-right font-mono">{signed(x.r, 2)}</span>
             </div>
           ))}
-          <p className="xs muted">Link is the correlation (−1 to +1) between this factor's unusual months and greenness's unusual months, at the best delay. Above about 0.3 is a clear link at this sample size. Orange bars move in the opposite direction.</p>
+          <p className="text-[13px] text-muted">Link is the correlation (−1 to +1) between this factor's unusual months and greenness's unusual months, at the best delay. Above about 0.3 is a clear link at this sample size. Orange bars move in the opposite direction.</p>
         </div>
-        <div className="story" id="whyStory">
-          <span className="kicker">{d.name} in short</span>
-          <p className="big">
+        <div className="flex flex-col gap-3 rounded-2xl bg-surface2 p-[18px]" id="whyStory">
+          <Kicker>{d.name} in short</Kicker>
+          <p className="font-display text-[22px] leading-[1.3]">
             {/* |r| ≥ 0.3 is roughly where a link is clear at this sample size */}
             {Math.abs(top.r) >= 0.3 ? (
               <>
@@ -141,18 +142,19 @@ export default function Why() {
               'No single weather factor tracks greenness closely here.'
             )}
           </p>
-          <p>Weather explains about <b>{wx}%</b> of the month-to-month ups and downs once seasons are removed.</p>
-          <p>
-            Average greenness moved from <b className="mono">{early.toFixed(3)}</b> (2010–14) to <b className="mono">{late.toFixed(3)}</b> (2021–25). After accounting for weather, the leftover trend is <b className="mono">{signed(leftTrend, 3)}</b> NDVI per decade
+          <p className="text-[15px]">Weather explains about <b>{wx}%</b> of the month-to-month ups and downs once seasons are removed.</p>
+          <p className="text-[15px]">
+            Average greenness moved from <b className="font-mono tabular-nums">{early.toFixed(3)}</b> (2010–14) to <b className="font-mono tabular-nums">{late.toFixed(3)}</b> (2021–25). After accounting for weather, the leftover trend is <b className="font-mono tabular-nums">{signed(leftTrend, 3)}</b> NDVI per decade
             {landSig
               ? leftTrend > 0
                 ? ': greening that weather does not explain, which points to irrigation, tree planting or other land change.'
                 : ': browning that weather does not explain, which points to land change such as building over green areas.'
               : ', small enough to be mostly weather.'}
           </p>
-          <p className="xs muted">These are statistical links, not proof of cause. Confirming land change needs land-cover maps, which are part of the next stage.</p>
+          {/* 15px, not the 13px of the other small print: the original's story paragraph size won over its small-text class */}
+          <p className="text-[15px] text-muted">These are statistical links, not proof of cause. Confirming land change needs land-cover maps, which are part of the next stage.</p>
         </div>
       </div>
-    </section>
+    </Card>
   )
 }

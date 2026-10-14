@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { rangeCls } from '../../styles/classes'
+import { Card, CardHead, Kicker, Lede, Pill, Pills, Readout, ReadoutItem, ReadoutWhen } from '../ui'
 
 // "The science": interactive NDVI explainer. Two sliders set how much red and
 // near-infrared light a surface reflects; the NDVI value, a plain-language
@@ -29,6 +31,11 @@ function leafBackground(v) {
   return `linear-gradient(135deg,rgb(${mix(214, 74)},${mix(190, 160)},${mix(140, 82)}),rgb(${mix(170, 30)},${mix(140, 110)},${mix(90, 60)}))`
 }
 
+// One slider: a label row (name left, value right) above the range input.
+const sliderCls = 'flex flex-col gap-1'
+const sliderLabelCls = 'flex justify-between text-[14px] text-muted'
+const sliderValueCls = 'font-mono font-medium text-ink'
+
 export default function Science() {
   // Reflectance in percent; defaults match the original page (a healthy leaf).
   const [red, setRed] = useState(8)
@@ -37,47 +44,52 @@ export default function Science() {
   const v = (nir - red) / (nir + red)
 
   return (
-    <section className="card" id="science" aria-labelledby="sciT">
-      <div className="head">
-        <div>
-          <span className="kicker">The science</span>
-          <h2 id="sciT">How a satellite sees a healthy plant</h2>
-          <p className="lede">Healthy leaves absorb red light for photosynthesis and strongly reflect near-infrared light. NDVI compares the two. Move the sliders, or try a surface.</p>
-        </div>
-      </div>
-      <div className="explainer">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div className="sl">
-            <label htmlFor="red">
-              Red light reflected <b id="redV">{red}%</b>
+    <Card id="science" aria-labelledby="sciT">
+      <CardHead>
+        <Kicker>The science</Kicker>
+        <h2 id="sciT">How a satellite sees a healthy plant</h2>
+        <Lede>Healthy leaves absorb red light for photosynthesis and strongly reflect near-infrared light. NDVI compares the two. Move the sliders, or try a surface.</Lede>
+      </CardHead>
+      {/* Controls on the left, leaf on the right; the leaf drops below them on phones */}
+      <div className="grid grid-cols-[minmax(0,1fr)_150px] items-center gap-[18px] max-[521px]:grid-cols-[minmax(0,1fr)]">
+        <div className="flex flex-col gap-3.5">
+          <div className={sliderCls}>
+            <label className={sliderLabelCls} htmlFor="red">
+              Red light reflected <b className={sliderValueCls} id="redV">{red}%</b>
             </label>
-            <input type="range" id="red" min="1" max="60" value={red} onChange={(e) => setRed(+e.target.value)} />
+            <input type="range" className={rangeCls} id="red" min="1" max="60" value={red} onChange={(e) => setRed(+e.target.value)} />
           </div>
-          <div className="sl">
-            <label htmlFor="nir">
-              Near-infrared reflected <b id="nirV">{nir}%</b>
+          <div className={sliderCls}>
+            <label className={sliderLabelCls} htmlFor="nir">
+              Near-infrared reflected <b className={sliderValueCls} id="nirV">{nir}%</b>
             </label>
-            <input type="range" id="nir" min="1" max="60" value={nir} onChange={(e) => setNir(+e.target.value)} />
+            <input type="range" className={rangeCls} id="nir" min="1" max="60" value={nir} onChange={(e) => setNir(+e.target.value)} />
           </div>
-          <div className="pills" id="surfaces">
+          <Pills id="surfaces">
             {SURF.map(([label, r, n]) => (
               // A preset reads as selected only while both sliders still match it.
-              <button key={label} type="button" className="pill" aria-pressed={r === red && n === nir} onClick={() => { setRed(r); setNir(n) }}>
+              <Pill key={label} pressed={r === red && n === nir} onClick={() => { setRed(r); setNir(n) }}>
                 {label}
-              </button>
+              </Pill>
             ))}
-          </div>
-          <div className="readout">
-            <span className="when">NDVI</span>
-            <span className="it">
-              <b id="ndviV" style={{ fontSize: 22 }}>{v.toFixed(2)}</b>
-            </span>
-            <span className="it" id="ndviTxt">{describe(v)}</span>
-          </div>
-          <p className="xs muted">NDVI = (NIR − Red) ÷ (NIR + Red). It runs from −1 to +1: water is below 0, bare sand and roofs sit near 0.1, and dense crops or forest reach 0.6–0.9.</p>
+          </Pills>
+          <Readout>
+            <ReadoutWhen>NDVI</ReadoutWhen>
+            <ReadoutItem>
+              <b className="text-[22px]" id="ndviV">{v.toFixed(2)}</b>
+            </ReadoutItem>
+            <ReadoutItem id="ndviTxt">{describe(v)}</ReadoutItem>
+          </Readout>
+          <p className="text-[13px] text-muted">NDVI = (NIR − Red) ÷ (NIR + Red). It runs from −1 to +1: water is below 0, bare sand and roofs sit near 0.1, and dense crops or forest reach 0.6–0.9.</p>
         </div>
-        <div className="leaf" id="leaf" aria-hidden="true" style={{ background: leafBackground(v) }} />
+        {/* Leaf shape: two opposite corners fully rounded, the other two nearly square, tilted a little */}
+        <div
+          className="size-[150px] rounded-[50%_4%_50%_4%] shadow-[inset_0_0_0_1px_rgba(0,0,0,.08)] transition-[background] duration-250 ease-[ease] transform-[rotate(-12deg)]"
+          id="leaf"
+          aria-hidden="true"
+          style={{ background: leafBackground(v) }}
+        />
       </div>
-    </section>
+    </Card>
   )
 }

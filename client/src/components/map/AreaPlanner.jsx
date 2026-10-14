@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { hwLabel, planSnippet, planStats } from '../../lib/map/geometry'
+import { rangeCls } from '../../styles/classes'
+import { Btn, Group, GroupTitle } from '../ui'
 
 /*
   "Plan a new area" panel at the bottom of the map rail. The pin and square on
@@ -40,33 +42,36 @@ export default function AreaPlanner({ plan, hwSlider, onToggle, onSlider }) {
   }
 
   return (
-    <div className="grp plan">
-      <span className="t">Plan a new area</span>
-      <button type="button" className="btn soft" id="planBtn" aria-pressed={plan.on} onClick={onToggle}>
+    // Separated from the rail's other controls by a rule above
+    <Group className="border-t border-line pt-[14px]">
+      <GroupTitle>Plan a new area</GroupTitle>
+      <Btn soft id="planBtn" aria-pressed={plan.on} onClick={onToggle}>
         {plan.on ? 'Stop planning' : 'Start planning'}
-      </button>
-      {/* The global [hidden] rule (display:none !important) beats the inline flex */}
-      <div id="planBody" hidden={!plan.on} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <p className="xs muted">Drag the blue pin or tap the map to move it, then set the size.</p>
-        <div className="rowc" style={{ flexWrap: 'nowrap' }}>
-          <span className="xs muted" style={{ minWidth: 70 }}>Half-width</span>
-          <input type="range" id="hw" min="0" max="100" step="1" aria-label="Half-width" value={hwSlider} onChange={(e) => onSlider(+e.target.value)} />
-          <b className="mono xs" id="hwOut" style={{ minWidth: 58, textAlign: 'right' }}>{hwLabel(plan.hw)}</b>
+      </Btn>
+      {/* The [hidden] rule in Tailwind's preflight (display:none !important) beats flex */}
+      <div id="planBody" hidden={!plan.on} className="flex flex-col gap-2.5">
+        <p className="text-[13px] text-muted">Drag the blue pin or tap the map to move it, then set the size.</p>
+        <div className="flex flex-nowrap items-center gap-2">
+          <span className="min-w-[70px] text-[13px] text-muted">Half-width</span>
+          <input type="range" className={rangeCls} id="hw" min="0" max="100" step="1" aria-label="Half-width" value={hwSlider} onChange={(e) => onSlider(+e.target.value)} />
+          <b className="min-w-[58px] text-right font-mono text-[13px] tabular-nums" id="hwOut">{hwLabel(plan.hw)}</b>
         </div>
-        <dl className="kv" id="planStats">
+        <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-2.5 gap-y-[3px] text-[13px]" id="planStats">
           {stats.map(([k, v]) => (
             <Fragment key={k}>
-              <dt>{k}</dt>
-              <dd>{v}</dd>
+              <dt className="text-muted">{k}</dt>
+              <dd className="m-0 text-right font-mono">{v}</dd>
             </Fragment>
           ))}
         </dl>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span className="xs muted">Notebook settings</span>
-          <button type="button" className="btn soft" id="copyBtn" style={{ padding: '5px 12px' }} onClick={copy}>{copyLabel}</button>
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] text-muted">Notebook settings</span>
+          {/* Smaller than a normal Btn; important so it beats Btn's own padding */}
+          <Btn soft id="copyBtn" className="p-[5px_12px]!" onClick={copy}>{copyLabel}</Btn>
         </div>
-        <pre className="code" id="snippet" ref={snippetRef}>{snippet}</pre>
+        {/* leading-[1.5] comes from the original `font: 12.5px/1.5` shorthand */}
+        <pre className="m-0 overflow-x-auto rounded-[10px] bg-surface2 p-2.5 font-mono text-[12.5px] leading-[1.5] font-normal select-all" id="snippet" ref={snippetRef}>{snippet}</pre>
       </div>
-    </div>
+    </Group>
   )
 }

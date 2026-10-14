@@ -1,3 +1,5 @@
+import { Card, CardHead, Kicker, Note } from '../ui'
+
 // Data sources: one row per measure with its provider, resolution and time span.
 // The "Covers" dates describe the bundled dataset and must be updated with it.
 const ROWS = [
@@ -10,38 +12,43 @@ const ROWS = [
   ['District boundaries', 'geoBoundaries (gbOpen, ADM2)', 'Simplified for the web', 'Current'],
 ]
 
+// Table cells: left-aligned, top-aligned, with a hairline under each row.
+const cellCls = 'border-b border-line px-2.5 py-[9px] text-left align-top'
+// Header cells add small uppercase muted labels.
+const headCls = cellCls + ' text-[12.5px] font-semibold tracking-[.05em] text-muted uppercase'
+
 export default function Sources() {
   return (
-    <section className="card" id="sources" aria-labelledby="srcT">
-      <div className="head">
-        <div>
-          <span className="kicker">Data sources</span>
-          <h2 id="srcT">Where every number comes from</h2>
-        </div>
-      </div>
-      {/* .tw scrolls the table sideways on narrow screens */}
-      <div className="tw">
-        <table>
+    <Card id="sources" aria-labelledby="srcT">
+      <CardHead>
+        <Kicker>Data sources</Kicker>
+        <h2 id="srcT">Where every number comes from</h2>
+      </CardHead>
+      {/* This wrapper scrolls the table sideways on narrow screens */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[14px]">
           <thead>
             <tr>
-              <th>Measure</th>
-              <th>Source</th>
-              <th>Detail</th>
-              <th>Covers</th>
+              <th className={headCls}>Measure</th>
+              <th className={headCls}>Source</th>
+              <th className={headCls}>Detail</th>
+              <th className={headCls}>Covers</th>
             </tr>
           </thead>
           <tbody>
             {ROWS.map((r) => (
               <tr key={r[0]}>
                 {r.map((cell, i) => (
-                  <td key={i}>{cell}</td>
+                  <td key={i} className={cellCls}>
+                    {cell}
+                  </td>
                 ))}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="note">Climate values from NASA POWER describe a grid cell tens of kilometres wide, so they represent the wider area around the city. The satellite values describe the 10 × 10 km box itself.</p>
-    </section>
+      <Note>Climate values from NASA POWER describe a grid cell tens of kilometres wide, so they represent the wider area around the city. The satellite values describe the 10 × 10 km box itself.</Note>
+    </Card>
   )
 }

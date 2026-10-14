@@ -14,6 +14,7 @@ import useYearPlayer from './useYearPlayer'
 import useAreaPlanner from './useAreaPlanner'
 import MapRail from './MapRail'
 import AreaPlanner from './AreaPlanner'
+import { Card, CardHead, Kicker, Lede } from '../ui'
 
 /*
   Map explorer (section#where). A Leaflet map of the selected city on a
@@ -30,6 +31,12 @@ import AreaPlanner from './AreaPlanner'
 const NO_OVERLAY = { main: null, left: null, swipe: false, followsYear: false, city: null }
 // The swipe divider stays a little inside the edges so the handle is always grabbable
 const clampX = (x) => Math.min(0.97, Math.max(0.03, x))
+
+// Dark translucent buttons over the top right of the map. leading-[normal]
+// matches the `font:` shorthand of the original design.
+const TOOL_BTN = 'cursor-pointer rounded-full border border-[rgba(255,255,255,.22)] bg-[rgba(18,28,22,.78)] px-3 py-1.5 font-body text-[13px] leading-[normal] font-semibold text-[#F1F5F2] hover:bg-[rgba(18,28,22,.92)]'
+// Year/layer captions either side of the swipe divider (position added per label)
+const SWIPE_LABEL = 'absolute top-14 rounded-full bg-[rgba(18,28,22,.75)] px-2.5 py-1 font-body text-[12px] leading-[normal] font-semibold whitespace-nowrap text-white'
 
 export default function MapExplorer() {
   const { city, setCity, focusSeq } = useApp()
@@ -348,29 +355,35 @@ export default function MapExplorer() {
   const fitRegion = () => map?.flyTo(REGION_CENTER, 6.5, { duration: 0.8 })
 
   return (
-    <section className="card" id="where" aria-labelledby="mapT">
-      <div className="head">
-        <div>
-          <span className="kicker">Map explorer</span>
-          <h2 id="mapT">See where the city is greening or browning</h2>
-          <p className="lede">Satellite numbers are averaged over the dashed yellow square, a 10 × 10 km box on the city centre, and the red line is the district. Turn on a layer to see every 250 m pixel, play the years, swipe between two years, or tap a pixel to see its own history.</p>
-        </div>
-      </div>
-      <div className="mapbench">
-        <div className="mapwrap">
+    <Card id="where" aria-labelledby="mapT">
+      <CardHead>
+        <Kicker>Map explorer</Kicker>
+        <h2 id="mapT">See where the city is greening or browning</h2>
+        <Lede>Satellite numbers are averaged over the dashed yellow square, a 10 × 10 km box on the city centre, and the red line is the district. Turn on a layer to see every 250 m pixel, play the years, swipe between two years, or tap a pixel to see its own history.</Lede>
+      </CardHead>
+      {/* Map beside a 290px control rail; the rail drops below the map at 900px and narrower */}
+      <div className="grid grid-cols-[minmax(0,1fr)_290px] items-start gap-[18px] max-[901px]:grid-cols-[minmax(0,1fr)]">
+        <div className="relative overflow-hidden rounded-2xl bg-[#2b2a24]">
           {/* Leaflet owns everything inside #map; React never renders children here */}
-          <div id="map" ref={mapEl} role="application" aria-label="Satellite map of the selected city" />
-          <div className="maptools">
-            <button type="button" id="fitBox" onClick={fitBox}>Measurement box</button>
-            <button type="button" id="fitDist" onClick={fitDist}>District</button>
-            <button type="button" id="fitRegion" onClick={fitRegion}>Region</button>
+          <div id="map" ref={mapEl} role="application" aria-label="Satellite map of the selected city" className="h-[600px] w-full max-[901px]:h-[420px]" />
+          <div className="absolute top-3 right-3 z-500 flex flex-wrap justify-end gap-1.5">
+            <button type="button" id="fitBox" className={TOOL_BTN} onClick={fitBox}>Measurement box</button>
+            <button type="button" id="fitDist" className={TOOL_BTN} onClick={fitDist}>District</button>
+            <button type="button" id="fitRegion" className={TOOL_BTN} onClick={fitRegion}>Region</button>
           </div>
-          {/* left and aria-valuenow are set by updateSwipe; React only gives the initial values */}
-          <div className="swipe" id="swipe" ref={swipeElRef} hidden={!(swipe && hasOverlay)}>
-            <span className="slab" id="swipeL" style={{ right: 10 }}>{isYear ? String(ya) : 'Photo'}</span>
-            <span className="slab" id="swipeR" style={{ left: 10 }}>{isYear ? String(yb) : d.label}</span>
+          {/* Swipe divider: a zero-width strip whose ::before draws the white line.
+              left and aria-valuenow are set by updateSwipe; React only gives the initial values */}
+          <div
+            className="pointer-events-none absolute top-0 bottom-0 z-600 w-0 before:absolute before:top-0 before:bottom-0 before:-left-px before:w-[2px] before:bg-white before:shadow-[0_0_6px_rgba(0,0,0,.5)] before:content-['']"
+            id="swipe"
+            ref={swipeElRef}
+            hidden={!(swipe && hasOverlay)}
+          >
+            <span className={`${SWIPE_LABEL} right-2.5`} id="swipeL">{isYear ? String(ya) : 'Photo'}</span>
+            <span className={`${SWIPE_LABEL} left-2.5`} id="swipeR">{isYear ? String(yb) : d.label}</span>
+            {/* Round grab handle centred on the divider; the strip ignores the pointer, the handle doesn't */}
             <span
-              className="handle"
+              className="pointer-events-auto absolute top-1/2 -left-[19px] -mt-[19px] flex size-[38px] cursor-ew-resize touch-none items-center justify-center rounded-full bg-white font-body text-[15px] leading-[normal] font-bold text-[#1D3328] shadow-[0_2px_10px_rgba(0,0,0,.35)]"
               id="swipeHandle"
               ref={handleRef}
               role="slider"
@@ -388,7 +401,14 @@ export default function MapExplorer() {
               ⇔
             </span>
           </div>
-          <span className="mapchip" id="mapcur" ref={curRef}>Move over the map</span>
+          {/* Cursor coordinates: same dark chip as the map buttons, but mono and click-through */}
+          <span
+            className="pointer-events-none absolute bottom-3 left-3 z-500 cursor-default rounded-full border border-[rgba(255,255,255,.22)] bg-[rgba(18,28,22,.78)] px-3 py-1.5 font-mono text-[12px] leading-[normal] font-normal text-[#F1F5F2]"
+            id="mapcur"
+            ref={curRef}
+          >
+            Move over the map
+          </span>
         </div>
         <MapRail
           city={city}
@@ -412,11 +432,12 @@ export default function MapExplorer() {
           <AreaPlanner plan={planner.plan} hwSlider={planner.hwSlider} onToggle={planner.toggle} onSlider={planner.setSlider} />
         </MapRail>
       </div>
-      <div className="legendrow">
-        <span><span className="sw" style={{ borderColor: 'var(--coral)' }} />District boundary</span>
-        <span><span className="sq" />Measurement box (10 × 10 km)</span>
-        <span id="pixPanel" className="xs" />
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[14px] text-muted">
+        {/* Line swatch: a 3px top border coloured like the district outline */}
+        <span><span className="mr-1.5 inline-block h-0 w-[22px] border-t-[3px] align-middle" style={{ borderColor: 'var(--coral)' }} />District boundary</span>
+        <span><span className="mr-1.5 inline-block size-[14px] rounded-[2px] border-[2.5px] border-dashed border-[color:var(--box)] align-middle" />Measurement box (10 × 10 km)</span>
+        <span id="pixPanel" className="text-[13px]" />
       </div>
-    </section>
+    </Card>
   )
 }

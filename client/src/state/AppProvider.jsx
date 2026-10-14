@@ -37,7 +37,9 @@ export default function AppProvider({ children }) {
       {/* The live region is always in the document so screen readers announce
           the message when it appears; only the visible toast comes and goes. */}
       <div role="status" aria-live="polite">
-        {toastMsg != null && <div className="toast">{toastMsg}</div>}
+        {toastMsg != null && (
+          <div className="fixed bottom-6 left-1/2 z-[2000] -translate-x-1/2 rounded-full bg-ink px-[18px] py-2.5 text-[14px] text-page shadow-card">{toastMsg}</div>
+        )}
       </div>
     </AppContext.Provider>
   )

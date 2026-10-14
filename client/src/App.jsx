@@ -22,7 +22,8 @@ export default function App() {
   return (
     <AppProvider>
       <Nav />
-      <main className="wrap">
+      {/* Page column: every section stacks with a 28px gap */}
+      <main className="mx-auto flex max-w-[1180px] flex-col gap-7 px-5 pt-7 pb-16">
         {/* City picker and the data-driven sections all follow the selected city */}
         <Hero />
         <Glance />

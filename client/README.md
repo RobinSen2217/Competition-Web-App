@@ -30,7 +30,7 @@ public/
                             lst-night.png, and values.json (per-pixel numbers for the pixel inspector,
                             fetched on demand)
 src/
-  main.jsx                  entry; imports Tailwind, Leaflet CSS, then app styles (in that order)
+  main.jsx                  entry; imports Tailwind + tokens, Leaflet CSS, then Leaflet overrides
   App.jsx                   page assembly, one component per section
   data/                     bundled datasets (see "Data" below)
   lib/
@@ -40,27 +40,38 @@ src/
     chart.js                small SVG line-chart engine (used through components/common/Chart)
     download.js storage.js theme.js
     map/                    Leaflet helpers: basemap mosaics, layer defs, geometry, popup HTML
+  index.css                 Tailwind setup: design tokens (light/dark), @theme mapping, base element styles
   hooks/                    useThemeVersion (redraw on dark/light change), useElementWidth
   state/                    AppProvider + useApp(): selected city and toasts
   components/
+    ui/                     shared Tailwind building blocks: Card, CardHead, Kicker, Lede, Chip, Pill,
+                            Seg, Btn, Select, Toggle, Readout, Note ...
     common/                 Chart, Sparkline
     layout/                 Nav, Footer
     sections/               Hero, Glance, PlotBuilder, Why, Outlook, Compare, Intro, Science,
                             Methods, Sources, Faq
     map/                    MapExplorer and its rail, planner and hooks
-  styles/app.css            design tokens (light and dark) and all component styles
+  styles/classes.js         shared class strings (cx, noteCls, selectCls, rangeCls)
+  styles/leaflet.css        the only plain CSS: overrides for elements Leaflet creates itself
 ```
 
 ### Styling
 
-`styles/app.css` is the prototype's stylesheet, unchanged apart from two margin
-restores (see the comments in the file). It is unlayered, so it overrides Tailwind's
-preflight and `leaflet.css`. Tailwind is still loaded, so utility classes work in new
-components.
+Styling is Tailwind CSS v4 utilities, written directly on the elements.
 
-Colours that end up inside SVG or Leaflet layers are read from CSS variables at
-runtime (`css('--accent')`). Components that do this redraw when
-`useThemeVersion()` changes, so a dark/light switch recolours them live.
+- **Colours and fonts** come from design tokens in `src/index.css`. Use them as
+  normal Tailwind classes: `bg-surface`, `bg-surface2`, `text-ink`, `text-muted`,
+  `border-line`, `bg-accent`, `text-on-accent`, series colours `s1`–`s4`, status
+  colours `good`/`warn`/`bad`, fonts `font-display`/`font-body`/`font-mono`, and
+  `shadow-card`. Light and dark mode swap the underlying CSS variables, so no
+  `dark:` variants are needed.
+- **Font sizes** are pixel values (`text-[14px]`). Tailwind's named sizes
+  (`text-sm` etc.) also set a line-height and would shift the layout.
+- **Repeated pieces** (cards, chips, pills, buttons, selects, readouts) are React
+  components in `src/components/ui/`. Use those before writing long class lists.
+- **SVG and Leaflet colours** are read from the CSS variables at runtime
+  (`css('--accent')`). Components that do this redraw when `useThemeVersion()`
+  changes, so a dark/light switch recolours them live.
 
 ## Data
 

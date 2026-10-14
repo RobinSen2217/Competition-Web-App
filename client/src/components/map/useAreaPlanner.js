@@ -18,10 +18,12 @@ export default function useAreaPlanner(map) {
   useEffect(() => {
     if (!map) return
     const rect = L.rectangle([[0, 0], [0, 0]], { pane: 'shapes', color: '#4FB3FF', weight: 2.5, fillColor: '#4FB3FF', fillOpacity: 0.08, interactive: false })
+    // The pin is plain HTML inside Leaflet's marker, so it is styled with Tailwind
+    // classes in the string: a light-blue dot with a white ring
     const pin = L.marker([0, 0], {
       draggable: true,
       title: 'Drag to move the area',
-      icon: L.divIcon({ className: '', html: '<div class="centre-pin"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
+      icon: L.divIcon({ className: '', html: '<div class="size-[18px] cursor-grab rounded-full border-[3px] border-white bg-[#4FB3FF] shadow-[0_1px_6px_rgba(0,0,0,.5)]"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
     })
     pin.on('drag', (e) => {
       const ll = e.target.getLatLng()

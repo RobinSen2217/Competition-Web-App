@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react'
 import { drawChart } from '../../lib/chart'
 import useElementWidth from '../../hooks/useElementWidth'
 import useThemeVersion from '../../hooks/useThemeVersion'
+import { cx } from '../../styles/classes'
 
 /*
   React wrapper around drawChart.
@@ -49,5 +50,13 @@ export default function Chart({ options, hover = null, onHover, tall = false }) 
     apiRef.current?.setHover(hover)
   }, [hover])
 
-  return <div ref={elRef} className={tall ? 'chart tall' : 'chart'} />
+  // The SVG is injected by drawChart, so it is styled from the container.
+  // data-chart marks chart containers for the PNG export.
+  return (
+    <div
+      ref={elRef}
+      data-chart=""
+      className={cx('relative w-full', tall ? 'h-[340px]' : 'h-[180px]', '[&_svg]:block [&_svg]:size-full [&_svg]:touch-pan-y [&_svg]:overflow-visible')}
+    />
+  )
 }

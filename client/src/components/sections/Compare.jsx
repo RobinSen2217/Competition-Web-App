@@ -5,6 +5,8 @@ import { yOf } from '../../lib/months'
 import { P, fmtv, unitS } from '../../lib/params'
 import { mean } from '../../lib/stats'
 import { useApp } from '../../state/appContext'
+import { Card, CardHead, Kicker, Lede, Select } from '../ui'
+import { cx } from '../../styles/classes'
 
 /*
   "How the cities compare" section.
@@ -29,6 +31,20 @@ function fiveYearAvg(a, k, y0) {
 }
 
 const signed = (v, dec) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(dec)
+
+// One clickable city row. The reset at the start stands in for the original's
+// `all: unset` on the button (no native look, text aligned to the start,
+// inherited font). focus-visible keeps the page-wide accent outline but with
+// no offset, because that reset also cleared the offset in the original.
+// The current city's tint wins over the hover tint (aria variants sort after hover).
+const rowCls = cx(
+  'm-0 appearance-none border-0 bg-transparent text-start',
+  'grid cursor-pointer grid-cols-[110px_minmax(0,1fr)_90px] items-center gap-3 rounded-xl px-2.5 py-2 text-[14px]',
+  'hover:bg-surface2 focus-visible:outline-offset-0 aria-[current=true]:bg-accent-soft',
+)
+
+// Hollow dot (2010–2014); `on` fills it (2021–2025). left is set inline.
+const dotCls = 'absolute top-1.5 -ml-[7px] box-border size-3.5 rounded-full border-[2.5px] border-s1'
 
 export default function Compare() {
   const { city, setCity } = useApp()
@@ -56,20 +72,21 @@ export default function Compare() {
   }
 
   return (
-    <section className="card" id="compare" aria-labelledby="cmpT">
-      <div className="head">
-        <div>
-          <span className="kicker">City to city</span>
-          <h2 id="cmpT">How the cities compare</h2>
-          <p className="lede">Average of 2010–2014 (hollow dot) against 2021–2025 (filled dot). Tap a city to open it.</p>
-        </div>
-        <select id="cmpParam" aria-label="Parameter to compare" value={k} onChange={(e) => setK(e.target.value)}>
-          {CMP_KEYS.map((key) => (
-            <option key={key} value={key}>{P[key].label}{P[key].sum ? ' (yearly total)' : ''}</option>
-          ))}
-        </select>
-      </div>
-      <div className="dumb" id="dumb">
+    <Card id="compare" aria-labelledby="cmpT">
+      <CardHead
+        aside={
+          <Select id="cmpParam" aria-label="Parameter to compare" value={k} onChange={(e) => setK(e.target.value)}>
+            {CMP_KEYS.map((key) => (
+              <option key={key} value={key}>{P[key].label}{P[key].sum ? ' (yearly total)' : ''}</option>
+            ))}
+          </Select>
+        }
+      >
+        <Kicker>City to city</Kicker>
+        <h2 id="cmpT">How the cities compare</h2>
+        <Lede>Average of 2010–2014 (hollow dot) against 2021–2025 (filled dot). Tap a city to open it.</Lede>
+      </CardHead>
+      <div className="flex flex-col gap-1.5" id="dumb">
         {rows.map((r) => {
           const d = r.l - r.e
           // Relative change only where a percentage is meaningful (totals and NDVI),
@@ -80,32 +97,33 @@ export default function Compare() {
             <button
               key={r.c}
               type="button"
-              className="drow"
+              className={rowCls}
               data-c={r.c}
               aria-current={r.c === city}
               title={`${r.name}: ${fmtv(k, r.e)} → ${fmtv(k, r.l)}${unitS(k)}`}
               onClick={() => open(r.c)}
             >
               <b>{r.name}</b>
-              <span className="dtrack" aria-hidden="true">
-                <span className="dline" style={{ left: a + '%', width: b - a + '%' }} />
-                <span className="ddot" style={{ left: X(r.e) + '%' }} />
-                <span className="ddot on" style={{ left: X(r.l) + '%' }} />
+              {/* Track: a thin grey baseline (::before), the coloured span between the two averages, then the dots */}
+              <span className="relative mx-2 h-[26px] before:absolute before:inset-x-0 before:top-3 before:h-0.5 before:rounded-[2px] before:bg-line before:content-['']" aria-hidden="true">
+                <span className="absolute top-[11.5px] h-[3px] rounded-[3px] bg-s1" style={{ left: a + '%', width: b - a + '%' }} />
+                <span className={cx(dotCls, 'bg-surface')} style={{ left: X(r.e) + '%' }} />
+                <span className={cx(dotCls, 'bg-s1')} style={{ left: X(r.l) + '%' }} />
               </span>
-              <span className="v">{signed(d, P[k].dec)}{pct}</span>
+              <span className="text-right font-mono">{signed(d, P[k].dec)}{pct}</span>
             </button>
           )
         })}
         {/* Scale ends, aligned under the tracks */}
-        <div className="xs muted" style={{ display: 'grid', gridTemplateColumns: '110px minmax(0,1fr) 90px', gap: 12, padding: '0 10px' }}>
+        <div className="grid grid-cols-[110px_minmax(0,1fr)_90px] gap-3 px-2.5 text-[13px] text-muted">
           <span />
-          <span style={{ display: 'flex', justifyContent: 'space-between' }} className="mono">
+          <span className="flex justify-between font-mono tabular-nums">
             <span>{(lo - pad).toFixed(P[k].dec)}{unitS(k)}</span>
             <span>{(hi + pad).toFixed(P[k].dec)}{unitS(k)}</span>
           </span>
-          <span style={{ textAlign: 'right' }}>change</span>
+          <span className="text-right">change</span>
         </div>
       </div>
-    </section>
+    </Card>
   )
 }

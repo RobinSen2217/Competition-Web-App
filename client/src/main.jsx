@@ -1,9 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-// Stylesheet order matters: Tailwind (layered) -> Leaflet -> app styles (override both).
+// Tailwind and the design tokens first, then Leaflet's own CSS and our
+// overrides for the elements Leaflet creates (must come after leaflet.css).
 import './index.css'
 import 'leaflet/dist/leaflet.css'
-import './styles/app.css'
+import './styles/leaflet.css'
 import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(

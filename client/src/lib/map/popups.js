@@ -5,7 +5,9 @@ import { boxB, distKm } from './geometry'
 import L from 'leaflet'
 
 // HTML for Leaflet popups opened by a map click. Popups live outside React's
-// tree, so they are plain strings.
+// tree, so they are plain strings, styled with Tailwind classes written out in
+// full (Tailwind finds classes by scanning source text). Numbers in <b> use the
+// mono font.
 
 // Pixel inspector. `vals` is the result of loadPixelValues(city); values are
 // stored as integers: NDVI × 1000 and temperature × 10.
@@ -44,13 +46,13 @@ export function pixelPopupHtml({ layerId, row, col, vals, year }) {
     const title = layerId === 'green'
       ? `NDVI ${hiY}: ${hv == null ? '–' : hv.toFixed(2)}`
       : `Change: ${cv == null ? '–' : (cv >= 0 ? '+' : '−') + Math.abs(cv / 1000).toFixed(2)}`
-    return `<div class="pixpop"><b>${title}</b><br><span class="xs muted">250 m pixel · monsoon peak ${FIRST_YEAR}–${LAST_YEAR}</span>
-      <svg viewBox="0 0 220 60"><path d="${dpath}" fill="none" stroke="#2E7D4F" stroke-width="2"/>${hiY && hv != null ? `<circle cx="${X(hiY - FIRST_YEAR)}" cy="${Y(hv)}" r="3.5" fill="#2E7D4F"/>` : ''}<text x="6" y="10" font-size="9" fill="#777">${hi.toFixed(2)}</text><text x="6" y="58" font-size="9" fill="#777">${lo.toFixed(2)}</text><text x="214" y="58" font-size="9" fill="#777" text-anchor="end">${LAST_YEAR}</text></svg>
-      <span class="xs muted">2010–12 avg <b>${(mean(win(2010, 2012)) || 0).toFixed(2)}</b> → 2023–25 avg <b>${(mean(win(2023, 2025)) || 0).toFixed(2)}</b></span></div>`
+    return `<div><b class="font-mono">${title}</b><br><span class="text-[13px] text-muted">250 m pixel · monsoon peak ${FIRST_YEAR}–${LAST_YEAR}</span>
+      <svg class="mt-1.5 block h-[60px] w-[220px]" viewBox="0 0 220 60"><path d="${dpath}" fill="none" stroke="#2E7D4F" stroke-width="2"/>${hiY && hv != null ? `<circle cx="${X(hiY - FIRST_YEAR)}" cy="${Y(hv)}" r="3.5" fill="#2E7D4F"/>` : ''}<text x="6" y="10" font-size="9" fill="#777">${hi.toFixed(2)}</text><text x="6" y="58" font-size="9" fill="#777">${lo.toFixed(2)}</text><text x="214" y="58" font-size="9" fill="#777" text-anchor="end">${LAST_YEAR}</text></svg>
+      <span class="text-[13px] text-muted">2010–12 avg <b class="font-mono">${(mean(win(2010, 2012)) || 0).toFixed(2)}</b> → 2023–25 avg <b class="font-mono">${(mean(win(2023, 2025)) || 0).toFixed(2)}</b></span></div>`
   }
   const grid = layerId === 'heatday' ? vals.lstDayVals : vals.lstNightVals
   const x = grid[row][col]
-  return `<div class="pixpop"><b>${x == null ? '–' : (x / 10).toFixed(1) + ' °C'}</b><br><span class="xs muted">${layerId === 'heatday' ? 'Daytime' : 'Night-time'} surface temperature, April–June average 2022–2026, 1 km pixel</span></div>`
+  return `<div><b class="font-mono">${x == null ? '–' : (x / 10).toFixed(1) + ' °C'}</b><br><span class="text-[13px] text-muted">${layerId === 'heatday' ? 'Daytime' : 'Night-time'} surface temperature, April–June average 2022–2026, 1 km pixel</span></div>`
 }
 
 // Fallback for clicks without pixel data: the coordinates, and either "inside

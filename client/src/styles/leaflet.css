@@ -1,0 +1,26 @@
+/*
+  Overrides for elements that Leaflet creates itself, so they can't take
+  Tailwind classes. Imported right after leaflet/dist/leaflet.css (see
+  main.jsx) and unlayered like it, so these win over Leaflet's defaults.
+*/
+.leaflet-container {
+  font-family: var(--f-body);
+  background: #2b2a24;
+}
+.leaflet-popup-content {
+  font-size: 14px;
+}
+.leaflet-control-attribution {
+  font-size: 10px;
+}
+.leaflet-bar a {
+  border-radius: 10px;
+}
+/* "Sharp pixels": class given to data-layer image overlays so each coarse MODIS cell stays a crisp square */
+.pixel-crisp {
+  image-rendering: pixelated;
+}
+/* Keep the design's 2px focus-ring offset on the map (Leaflet's own rule sets 1px) */
+.leaflet-container:focus-visible {
+  outline-offset: 2px;
+}

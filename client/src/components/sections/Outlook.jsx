@@ -6,6 +6,8 @@ import { forecast } from '../../lib/stats'
 import { css } from '../../lib/theme'
 import { useApp } from '../../state/appContext'
 import Chart from '../common/Chart'
+import { Card, CardHead, Kicker, Lede, Readout, ReadoutItem, ReadoutWhen, Seg, SegButton, Select, Swatch } from '../ui'
+import { noteCls } from '../../styles/classes'
 
 /*
   "What the next months may look like" section.
@@ -85,62 +87,67 @@ export default function Outlook() {
     if (o) {
       readout = (
         <>
-          <span className="when">{lab(hover)}</span>
-          <span className="it"><i style={{ background: 'var(--s1)' }} />Forecast <b>{fmtv(k, o.v)}{unitS(k)}</b></span>
-          <span className="it">likely range <b>{fmtv(k, o.lo)}–{fmtv(k, o.hi)}</b></span>
-          <span className="it">usual <b>{fmtv(k, f.clim[o.m])}</b></span>
+          <ReadoutWhen>{lab(hover)}</ReadoutWhen>
+          <ReadoutItem><Swatch color="var(--s1)" />Forecast <b>{fmtv(k, o.v)}{unitS(k)}</b></ReadoutItem>
+          <ReadoutItem>likely range <b>{fmtv(k, o.lo)}–{fmtv(k, o.hi)}</b></ReadoutItem>
+          <ReadoutItem>usual <b>{fmtv(k, f.clim[o.m])}</b></ReadoutItem>
         </>
       )
     } else if (hover != null && a[hover] != null) {
       readout = (
         <>
-          <span className="when">{lab(hover)}</span>
-          <span className="it"><i style={{ background: 'var(--s1)' }} />Observed <b>{fmtv(k, a[hover])}{unitS(k)}</b></span>
-          <span className="it">usual <b>{fmtv(k, f.clim[mOf(hover)])}</b></span>
+          <ReadoutWhen>{lab(hover)}</ReadoutWhen>
+          <ReadoutItem><Swatch color="var(--s1)" />Observed <b>{fmtv(k, a[hover])}{unitS(k)}</b></ReadoutItem>
+          <ReadoutItem>usual <b>{fmtv(k, f.clim[mOf(hover)])}</b></ReadoutItem>
         </>
       )
     } else {
       const e = f.out[f.out.length - 1]
       readout = (
         <>
-          <span className="when">By {lab(e.i)}</span>
-          <span className="it"><i style={{ background: 'var(--s1)' }} />{P[k].label} <b>{fmtv(k, e.v)}{unitS(k)}</b></span>
-          <span className="it">likely range <b>{fmtv(k, e.lo)}–{fmtv(k, e.hi)}</b></span>
-          <span className="it">usual <b>{fmtv(k, f.clim[e.m])}</b></span>
+          <ReadoutWhen>By {lab(e.i)}</ReadoutWhen>
+          <ReadoutItem><Swatch color="var(--s1)" />{P[k].label} <b>{fmtv(k, e.v)}{unitS(k)}</b></ReadoutItem>
+          <ReadoutItem>likely range <b>{fmtv(k, e.lo)}–{fmtv(k, e.hi)}</b></ReadoutItem>
+          <ReadoutItem>usual <b>{fmtv(k, f.clim[e.m])}</b></ReadoutItem>
           {/* One more decimal than the value itself: per-decade trends are small */}
-          <span className="it">trend <b>{f.perDecade >= 0 ? '+' : '−'}{Math.abs(f.perDecade).toFixed(P[k].dec + 1)}</b> per decade</span>
+          <ReadoutItem>trend <b>{f.perDecade >= 0 ? '+' : '−'}{Math.abs(f.perDecade).toFixed(P[k].dec + 1)}</b> per decade</ReadoutItem>
         </>
       )
     }
   }
 
   return (
-    <section className="card" id="outlook" aria-labelledby="outT">
-      <div className="head">
-        <div>
-          <span className="kicker">Looking ahead</span>
-          <h2 id="outT">What the next months may look like</h2>
-          <p className="lede">A baseline forecast built from each month's usual value, the long-term trend and recent conditions. The shaded band is where 8 in 10 outcomes should fall. The physics-informed model will replace this baseline.</p>
-        </div>
-        <div className="rowc">
-          <select id="fcParam" aria-label="Forecast parameter" value={k} onChange={(e) => setK(e.target.value)}>
-            {FC_KEYS.map((key) => (
-              <option key={key} value={key}>{P[key].label}</option>
-            ))}
-          </select>
-          <div className="seg" id="fcH" role="group" aria-label="Months ahead">
-            {HORIZONS.map((n) => (
-              <button key={n} type="button" data-h={n} aria-pressed={h === n} onClick={() => setH(n)}>{n} months</button>
-            ))}
+    <Card id="outlook" aria-labelledby="outT">
+      <CardHead
+        aside={
+          // CardHead makes this div a column (gap 6px), so the dropdown sits above
+          // the buttons, centred, as in the original design. flex-wrap and
+          // items-center are what the original's row class added on top.
+          <div className="flex-wrap items-center">
+            <Select id="fcParam" aria-label="Forecast parameter" value={k} onChange={(e) => setK(e.target.value)}>
+              {FC_KEYS.map((key) => (
+                <option key={key} value={key}>{P[key].label}</option>
+              ))}
+            </Select>
+            <Seg id="fcH" role="group" aria-label="Months ahead">
+              {HORIZONS.map((n) => (
+                <SegButton key={n} data-h={n} pressed={h === n} onClick={() => setH(n)}>{n} months</SegButton>
+              ))}
+            </Seg>
           </div>
-        </div>
-      </div>
-      <div className="readout" id="fcRead">{readout}</div>
+        }
+      >
+        <Kicker>Looking ahead</Kicker>
+        <h2 id="outT">What the next months may look like</h2>
+        <Lede>A baseline forecast built from each month's usual value, the long-term trend and recent conditions. The shaded band is where 8 in 10 outcomes should fall. The physics-informed model will replace this baseline.</Lede>
+      </CardHead>
+      <Readout id="fcRead">{readout}</Readout>
       {f ? (
         <Chart options={options} hover={hover} onHover={onHover} tall />
       ) : (
-        <div className="chart tall"><div className="note">Not enough data to forecast.</div></div>
+        // Same box as a tall chart, holding the message instead of an SVG
+        <div className="relative h-[340px] w-full"><div className={noteCls}>Not enough data to forecast.</div></div>
       )}
-    </section>
+    </Card>
   )
 }

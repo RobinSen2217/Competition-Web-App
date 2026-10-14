@@ -6,6 +6,7 @@ import { css } from '../../lib/theme'
 import { useApp } from '../../state/appContext'
 import useThemeVersion from '../../hooks/useThemeVersion'
 import Sparkline from '../common/Sparkline'
+import { Card, CardHead, Chip, Kicker, Lede } from '../ui'
 
 // "At a glance": five headline cards for the selected city (greenness, monsoon
 // rainfall, air temperature, surface soil moisture and a 3-month greenness
@@ -17,17 +18,20 @@ const MONSOON = [5, 6, 7, 8]
 // Index into DATA.months for a given year and 0-based month (-1 if outside the data).
 const idxOf = (y, m) => M.indexOf(`${y}-${String(m + 1).padStart(2, '0')}`)
 
-// One card; `chip` is [cssClass, text].
-function Card({ lab, big, unit, chip, txt, children }) {
+// Sparkline size inside a glance card.
+const sparkCls = 'block h-[46px] w-full'
+
+// One headline card; `chip` is [tone, text]. A sparkline, if any, goes in as children.
+function GlanceCard({ lab, big, unit, chip, txt, children }) {
   return (
-    <div className="g">
-      <span className="lab">{lab}</span>
-      <span className="big">
+    <div className="flex min-w-0 flex-col gap-1.5 rounded-2xl bg-surface2 p-4">
+      <span className="text-[14px] font-semibold text-muted">{lab}</span>
+      <span className="font-mono text-[28px] leading-[1.1] font-medium">
         {big}
-        <small>{unit}</small>
+        <small className="ml-1 text-[14px] text-muted">{unit}</small>
       </span>
-      <span className={'chip ' + chip[0]}>{chip[1]}</span>
-      <p>{txt}</p>
+      <Chip tone={chip[0]}>{chip[1]}</Chip>
+      <p className="text-[14px] text-muted">{txt}</p>
       {children}
     </div>
   )
@@ -87,56 +91,54 @@ export default function Glance() {
   const { nd, rain, rNow, rNorm, rLab, rd, t, td, base, sm, ls, smc, smd, f, fEnd, fd, fYear } = g
 
   return (
-    <section className="card" id="glance" aria-labelledby="glanceT">
-      <div className="head">
-        <div>
-          <span className="kicker" id="glanceKick">{DATA.cities[c].name} right now</span>
-          <h2 id="glanceT">How is the city doing?</h2>
-          <p className="lede" id="glanceLede">
-            Latest satellite month: {mLabel(nd.li)}. Each card compares with the usual value for that time of year.
-          </p>
-        </div>
-      </div>
-      <div className="glance" id="glanceCards">
-        <Card
+    <Card id="glance" aria-labelledby="glanceT">
+      <CardHead>
+        <Kicker id="glanceKick">{DATA.cities[c].name} right now</Kicker>
+        <h2 id="glanceT">How is the city doing?</h2>
+        <Lede id="glanceLede">
+          Latest satellite month: {mLabel(nd.li)}. Each card compares with the usual value for that time of year.
+        </Lede>
+      </CardHead>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-3" id="glanceCards">
+        <GlanceCard
           lab="Vegetation greenness"
           big={nd.v.toFixed(2)}
           unit="NDVI"
           chip={nd.chip}
           txt={`${Math.abs(nd.d).toFixed(0)}% ${nd.d >= 0 ? 'above' : 'below'} a usual ${MON[mOf(nd.li)]}.`}
         >
-          <Sparkline data={ser(c, 'ndvi')} color={css('--s1')} />
-        </Card>
+          <Sparkline className={sparkCls} data={ser(c, 'ndvi')} color={css('--s1')} />
+        </GlanceCard>
         {/* Rainfall swings a lot year to year, so it uses a wider ±10% "normal" band */}
-        <Card
+        <GlanceCard
           lab="Rainfall"
           big={Math.round(rNow)}
           unit="mm"
           chip={rd >= 10 ? ['good', 'Wetter than usual'] : rd <= -10 ? ['warn', 'Drier than usual'] : ['neutral', 'Near normal']}
           txt={`${rLab}. Usual: ${Math.round(rNorm)} mm.`}
         >
-          <Sparkline data={rain} color={css('--s2')} />
-        </Card>
-        <Card
+          <Sparkline className={sparkCls} data={rain} color={css('--s2')} />
+        </GlanceCard>
+        <GlanceCard
           lab="Air temperature"
           big={(td >= 0 ? '+' : '−') + Math.abs(td).toFixed(1)}
           unit="°C"
           chip={td >= 0.3 ? ['warn', 'Warmer'] : td <= -0.3 ? ['good', 'Cooler'] : ['neutral', 'Similar']}
           txt={`Last 12 months against the 2010–2019 average of ${base.toFixed(1)} °C.`}
         >
-          <Sparkline data={t} color={css('--s3')} />
-        </Card>
-        <Card
+          <Sparkline className={sparkCls} data={t} color={css('--s3')} />
+        </GlanceCard>
+        <GlanceCard
           lab="Surface soil moisture"
           big={Math.round(sm[ls])}
           unit="% wet"
           chip={smd >= 5 ? ['good', 'Moister than usual'] : smd <= -5 ? ['warn', 'Drier than usual'] : ['neutral', 'Near normal']}
           txt={`${mLabel(ls)}. Usual for ${MON[mOf(ls)]}: ${Math.round(smc[mOf(ls)])}%.`}
         >
-          <Sparkline data={sm} color={css('--s2')} />
-        </Card>
+          <Sparkline className={sparkCls} data={sm} color={css('--s2')} />
+        </GlanceCard>
         {f && (
-          <Card
+          <GlanceCard
             lab="Greenness outlook"
             big={fEnd.v.toFixed(2)}
             unit="NDVI"
@@ -145,6 +147,6 @@ export default function Glance() {
           />
         )}
       </div>
-    </section>
+    </Card>
   )
 }

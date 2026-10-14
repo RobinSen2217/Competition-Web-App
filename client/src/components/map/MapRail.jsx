@@ -1,6 +1,11 @@
 import { FIRST_YEAR, LAST_YEAR } from '../../lib/months'
 import { layerDef, layersFor } from '../../lib/map/layers'
+import { rangeCls } from '../../styles/classes'
+import { Group, GroupTitle, Pill, Pills, Select, Toggle } from '../ui'
 import LayerRamp from './LayerRamp'
+
+// Current value at the right of a group title: mono, ink, and without the title's letter-spacing
+const VALUE = 'font-mono tracking-[0] text-ink tabular-nums'
 
 const YEAR_OPTS = Array.from({ length: LAST_YEAR - FIRST_YEAR + 1 }, (_, i) => FIRST_YEAR + i)
 
@@ -19,64 +24,69 @@ export default function MapRail({
 }) {
   const d = layerDef(layer), isYear = d.id === 'green'
   const toggle = (k, label) => (
-    <label className="toggle">
-      <input type="checkbox" id={k} checked={show[k]} onChange={(e) => onShow(k, e.target.checked)} /> {label}
-    </label>
+    <Toggle id={k} checked={show[k]} onChange={(e) => onShow(k, e.target.checked)}> {label}</Toggle>
   )
   return (
-    <aside className="rail" aria-label="Map controls">
-      <div className="grp">
-        <span className="t">Layer</span>
-        <div className="pills" id="layerPills">
+    // Scrolls beside the 600px map; at 900px and narrower it sits below and grows freely
+    <aside className="flex max-h-[600px] flex-col gap-4 overflow-auto pr-[2px] max-[901px]:max-h-none" aria-label="Map controls">
+      <Group>
+        <GroupTitle>Layer</GroupTitle>
+        <Pills id="layerPills">
           {layersFor(city).map((l) => (
-            <button type="button" className="pill" key={l.id} data-l={l.id} aria-pressed={l.id === layer} onClick={() => onLayer(l.id)}>
+            <Pill key={l.id} data-l={l.id} pressed={l.id === layer} onClick={() => onLayer(l.id)}>
               {l.label}
-            </button>
+            </Pill>
           ))}
-        </div>
-      </div>
-      <div className="grp" id="yearGrp" hidden={!isYear}>
-        <span className="t" style={{ display: 'flex', justifyContent: 'space-between' }}>
-          Year <b className="mono" id="yearOut" style={{ color: 'var(--ink)', letterSpacing: 0 }}>{year}</b>
-        </span>
-        <div className="rowc" style={{ flexWrap: 'nowrap' }}>
-          <button type="button" className="playbtn" id="play" aria-label={playing ? 'Pause' : 'Play through the years'} onClick={onPlay}>
+        </Pills>
+      </Group>
+      <Group id="yearGrp" hidden={!isYear}>
+        <GroupTitle className="flex justify-between">
+          Year <b className={VALUE} id="yearOut">{year}</b>
+        </GroupTitle>
+        <div className="flex flex-nowrap items-center gap-2">
+          <button
+            type="button"
+            className="size-[38px] flex-none cursor-pointer rounded-full border-0 bg-accent text-[14px] text-on-accent"
+            id="play"
+            aria-label={playing ? 'Pause' : 'Play through the years'}
+            onClick={onPlay}
+          >
             {playing ? '❚❚' : '▶'}
           </button>
-          <input type="range" id="year" min={FIRST_YEAR} max={LAST_YEAR} step="1" value={year} aria-label="Year" onChange={(e) => onYear(+e.target.value)} />
+          <input type="range" className={rangeCls} id="year" min={FIRST_YEAR} max={LAST_YEAR} step="1" value={year} aria-label="Year" onChange={(e) => onYear(+e.target.value)} />
         </div>
-        <p className="xs muted">Greenest scene of August to October each year (2026: August–September so far).</p>
-      </div>
-      <div className="grp">
-        <span className="t" style={{ display: 'flex', justifyContent: 'space-between' }}>
-          Opacity <b className="mono" id="opOut" style={{ color: 'var(--ink)', letterSpacing: 0 }}>{op}%</b>
-        </span>
-        <input type="range" id="op" min="0" max="100" step="5" value={op} aria-label="Layer opacity" onChange={(e) => onOp(+e.target.value)} />
-      </div>
+        <p className="text-[13px] text-muted">Greenest scene of August to October each year (2026: August–September so far).</p>
+      </Group>
+      <Group>
+        <GroupTitle className="flex justify-between">
+          Opacity <b className={VALUE} id="opOut">{op}%</b>
+        </GroupTitle>
+        <input type="range" className={rangeCls} id="op" min="0" max="100" step="5" value={op} aria-label="Layer opacity" onChange={(e) => onOp(+e.target.value)} />
+      </Group>
       {/* Greenness compares two years; every other layer compares against the photo */}
-      <div className="grp" id="cmpGrp" hidden={d.id === 'none'}>
-        <label className="toggle">
-          <input type="checkbox" id="swipeOn" checked={swipe} onChange={(e) => onSwipe(e.target.checked)} />{' '}
+      <Group id="cmpGrp" hidden={d.id === 'none'}>
+        <Toggle id="swipeOn" checked={swipe} onChange={(e) => onSwipe(e.target.checked)}>
+          {' '}
           <span id="swipeLabel">{isYear ? 'Swipe between two years' : 'Swipe against the photo'}</span>
-        </label>
-        <div className="rowc" id="swipeYears" hidden={!(isYear && swipe)}>
-          <select id="ya" aria-label="Left year" value={ya} onChange={(e) => onYa(+e.target.value)}>
+        </Toggle>
+        <div className="flex flex-wrap items-center gap-2" id="swipeYears" hidden={!(isYear && swipe)}>
+          <Select id="ya" aria-label="Left year" value={ya} onChange={(e) => onYa(+e.target.value)}>
             {YEAR_OPTS.map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
-          <span className="muted xs">left · right</span>
-          <select id="yb" aria-label="Right year" value={yb} onChange={(e) => onYb(+e.target.value)}>
+          </Select>
+          <span className="text-[13px] text-muted">left · right</span>
+          <Select id="yb" aria-label="Right year" value={yb} onChange={(e) => onYb(+e.target.value)}>
             {YEAR_OPTS.map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
+          </Select>
         </div>
-      </div>
+      </Group>
       <LayerRamp ramp={d.ramp} />
-      <p className="xs muted" id="layerDesc">{d.desc}</p>
-      <div className="grp">
-        <span className="t">Show</span>
+      <p className="text-[13px] text-muted" id="layerDesc">{d.desc}</p>
+      <Group>
+        <GroupTitle>Show</GroupTitle>
         {toggle('labOn', 'Place names')}
         {toggle('allOn', 'Other cities')}
         {toggle('pixOn', 'Sharp pixels')}
-      </div>
+      </Group>
       {children}
     </aside>
   )

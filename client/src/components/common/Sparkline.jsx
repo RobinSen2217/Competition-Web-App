@@ -1,7 +1,8 @@
 import { lastIdx } from '../../lib/stats'
 
 // Tiny trend line of the last n+1 months, with a dot on the latest value.
-export default function Sparkline({ data, color, n = 35 }) {
+// className sizes the SVG (it differs between the city cards and the glance cards).
+export default function Sparkline({ data, color, n = 35, className }) {
   const li = lastIdx(data), i0 = Math.max(0, li - n), seg = data.slice(i0, li + 1), v = seg.filter((x) => x != null)
   if (!v.length) return null
   const lo = Math.min(...v), hi = Math.max(...v), w = 200, h = 40
@@ -17,7 +18,7 @@ export default function Sparkline({ data, color, n = 35 }) {
     pen = true
   })
   return (
-    <svg viewBox={`-4 0 ${w + 8} ${h}`} preserveAspectRatio="none" aria-hidden="true">
+    <svg className={className} viewBox={`-4 0 ${w + 8} ${h}`} preserveAspectRatio="none" aria-hidden="true">
       <path d={d} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
       <circle cx={X(seg.length - 1)} cy={Y(seg[seg.length - 1])} r="3" fill={color} />
     </svg>

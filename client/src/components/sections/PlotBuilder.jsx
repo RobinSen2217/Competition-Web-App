@@ -3,6 +3,7 @@
 // the pointer in the readout, and download the data (CSV) or the charts (PNG).
 import { useCallback, useMemo, useRef, useState } from 'react'
 import Chart from '../common/Chart'
+import { Btn, Card, CardHead, Group, GroupTitle, Kicker, Lede, Pill, PillDot, Pills, Readout, ReadoutItem, ReadoutWhen, Seg, SegButton, Select, Swatch, Toggle } from '../ui'
 import { useApp } from '../../state/appContext'
 import useThemeVersion from '../../hooks/useThemeVersion'
 import { DATA, M, N, ser } from '../../lib/data'
@@ -80,6 +81,20 @@ const quickOn = (q, y0, y1) => y1 === LAST_YEAR && (q === 'all' ? y0 === FIRST_Y
    pointer (which changes `hover`) just moves the crosshair instead of redrawing.
    Colours are read inside options(); <Chart> re-calls it on theme change. */
 
+// One chart with its title above.
+const panelCls = 'flex flex-col gap-0.5'
+const panelUnitCls = 'font-medium text-muted'
+
+// Parameter name on the left, unit/source <span> on the right. data-panel-title
+// lets the PNG export find the titles.
+function PanelTitle({ children }) {
+  return (
+    <div data-panel-title="" className="flex justify-between gap-2.5 text-[14px] font-semibold">
+      {children}
+    </div>
+  )
+}
+
 // Separate view: one panel per parameter on its own scale, optionally with a
 // 12-month running average drawn over a faded raw line.
 function TimePanel({ city, k, slot, i0, i1, smooth, hover, onHover }) {
@@ -103,13 +118,13 @@ function TimePanel({ city, k, slot, i0, i1, smooth, hover, onHover }) {
     [city, k, slot, i0, i1, smooth],
   )
   return (
-    <div className="panel">
-      <div className="pt">
+    <div className={panelCls}>
+      <PanelTitle>
         {P[k].label}
-        <span>
+        <span className={panelUnitCls}>
           {P[k].unit || 'index'} · {P[k].src}
         </span>
-      </div>
+      </PanelTitle>
       <Chart options={options} hover={hover} onHover={onHover} />
     </div>
   )
@@ -140,11 +155,11 @@ function SeasonPanel({ city, k, slot, y0, y1, hover, onHover }) {
     [city, k, slot, y0, y1],
   )
   return (
-    <div className="panel">
-      <div className="pt">
+    <div className={panelCls}>
+      <PanelTitle>
         {P[k].label}
-        <span>{P[k].unit || 'index'}</span>
-      </div>
+        <span className={panelUnitCls}>{P[k].unit || 'index'}</span>
+      </PanelTitle>
       <Chart options={options} hover={hover} onHover={onHover} />
     </div>
   )
@@ -181,7 +196,7 @@ function TogetherPanel({ city, selection, i0, i1, smooth, hover, onHover }) {
     [city, selection, i0, i1, smooth],
   )
   return (
-    <div className="panel">
+    <div className={panelCls}>
       <Chart options={options} hover={hover} onHover={onHover} tall />
     </div>
   )
@@ -289,10 +304,10 @@ export default function PlotBuilder() {
   const downloadPng = async () => {
     const host = panelsRef.current
     if (!host) return
-    const svgs = [...host.querySelectorAll('.chart svg')]
+    const svgs = [...host.querySelectorAll('[data-chart] svg')]
     if (!svgs.length) return
     // Panel titles are the text node before the unit <span>; Together has none.
-    const titles = [...host.querySelectorAll('.pt')].map((t) => t.firstChild.textContent)
+    const titles = [...host.querySelectorAll('[data-panel-title]')].map((t) => t.firstChild.textContent)
     const W = 1200, ph = view === 'together' ? 420 : 240, H = 90 + svgs.length * (ph + 34) + 30
     const cv = document.createElement('canvas')
     cv.width = W * 2
@@ -339,8 +354,8 @@ export default function PlotBuilder() {
     if (hover == null) {
       readout = (
         <>
-          <span className="when">By season</span>
-          <span className="it">Hover a chart to compare the latest year with the average year for any month.</span>
+          <ReadoutWhen>By season</ReadoutWhen>
+          <ReadoutItem>Hover a chart to compare the latest year with the average year for any month.</ReadoutItem>
         </>
       )
     } else {
@@ -348,14 +363,14 @@ export default function PlotBuilder() {
       const m = hover
       readout = (
         <>
-          <span className="when">{MON[m]}</span>
+          <ReadoutWhen>{MON[m]}</ReadoutWhen>
           {sel.map((k) => {
             const a = ser(city, k), ly = yOf(lastIdx(a)), i = M.indexOf(`${ly}-${String(m + 1).padStart(2, '0')}`), cl = clim(a)[m]
             return (
-              <span className="it" key={k}>
-                <i style={{ background: colorOf(k) }}></i>
+              <ReadoutItem key={k}>
+                <Swatch color={colorOf(k)} />
                 {P[k].short}: <b>{i >= 0 && a[i] != null ? fmtv(k, a[i]) : '–'}</b> in {ly}, usual <b>{fmtv(k, cl)}</b>
-              </span>
+              </ReadoutItem>
             )
           })}
         </>
@@ -366,21 +381,22 @@ export default function PlotBuilder() {
     const i = hover ?? Math.min(i1, ...sel.map((k) => lastIdx(ser(city, k))))
     readout = (
       <>
-        <span className="when">{mLabel(i)}</span>
+        <ReadoutWhen>{mLabel(i)}</ReadoutWhen>
         {sel.map((k) => {
           const v = ser(city, k)[i]
           return (
-            <span className="it" key={k}>
-              <i style={{ background: colorOf(k) }}></i>
+            <ReadoutItem key={k}>
+              <Swatch color={colorOf(k)} />
               {P[k].short}{' '}
               <b>
                 {fmtv(k, v)}
                 {v != null ? unitS(k) : ''}
               </b>
-            </span>
+            </ReadoutItem>
           )
         })}
-        {hover == null && <span className="it xs">latest · hover to explore</span>}
+        {/* This was "it xs", but the readout item's 14px outranked .xs, so it stays 14px. */}
+        {hover == null && <ReadoutItem>latest · hover to explore</ReadoutItem>}
       </>
     )
   }
@@ -396,95 +412,99 @@ export default function PlotBuilder() {
   }
 
   return (
-    <section className="card" id="plot" aria-labelledby="plotT">
-      <div className="head">
-        <div>
-          <span className="kicker">Explore the data</span>
-          <h2 id="plotT">Choose what to plot</h2>
-          <p className="lede">Tap parameters to add or remove them. The charts update straight away. Hover or touch a chart to read every value for that month.</p>
-        </div>
-        <div className="rowc">
-          <button type="button" className="btn soft" id="dlCsv" onClick={downloadCsv}>
-            Download data (CSV)
-          </button>
-          <button type="button" className="btn soft" id="dlPng" onClick={downloadPng}>
-            Download picture
-          </button>
-        </div>
-      </div>
-      <div className="builder">
-        <div className="side">
+    <Card id="plot" aria-labelledby="plotT">
+      <CardHead
+        aside={
+          // CardHead turns this div into a 6px-gap column, so the two buttons stack.
+          <div className="flex-wrap items-center">
+            <Btn soft id="dlCsv" onClick={downloadCsv}>
+              Download data (CSV)
+            </Btn>
+            <Btn soft id="dlPng" onClick={downloadPng}>
+              Download picture
+            </Btn>
+          </div>
+        }
+      >
+        <Kicker>Explore the data</Kicker>
+        <h2 id="plotT">Choose what to plot</h2>
+        <Lede>Tap parameters to add or remove them. The charts update straight away. Hover or touch a chart to read every value for that month.</Lede>
+      </CardHead>
+      {/* Controls rail on the left, readout and charts on the right; stacked at 900px and below. */}
+      <div className="grid grid-cols-[290px_minmax(0,1fr)] gap-[22px] max-[901px]:grid-cols-[minmax(0,1fr)]">
+        <div className="flex flex-col gap-[18px]">
           <div id="paramGroups">
             {GROUPS.map((grp) => (
-              <div className="grp" style={{ marginBottom: 14 }} key={grp}>
-                <span className="t">{grp}</span>
-                <div className="pills">
+              <Group className="mb-3.5" key={grp}>
+                <GroupTitle>{grp}</GroupTitle>
+                <Pills>
                   {PARAMS.filter((p) => p.grp === grp).map((p) => {
                     const on = sel.includes(p.k)
                     return (
-                      <button type="button" className="pill" data-k={p.k} aria-pressed={on} key={p.k} onClick={() => togglePill(p.k)}>
-                        <span className="dot" style={{ background: on ? colorOf(p.k) : 'var(--line)' }}></span>
+                      <Pill data-k={p.k} pressed={on} key={p.k} onClick={() => togglePill(p.k)}>
+                        {/* Unselected parameters get the default grey (--line) dot. */}
+                        <PillDot color={on ? colorOf(p.k) : undefined} />
                         {p.label}
-                      </button>
+                      </Pill>
                     )
                   })}
-                </div>
-              </div>
+                </Pills>
+              </Group>
             ))}
           </div>
-          <div className="grp">
-            <span className="t">Years</span>
-            <div className="rowc">
-              <select id="y0" aria-label="From year" value={y0} onChange={(e) => changeY0(+e.target.value)}>
+          <Group>
+            <GroupTitle>Years</GroupTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select id="y0" aria-label="From year" value={y0} onChange={(e) => changeY0(+e.target.value)}>
                 {YEARS.map((y) => (
                   <option value={y} key={y}>
                     {y}
                   </option>
                 ))}
-              </select>
-              <span className="muted">to</span>
-              <select id="y1" aria-label="To year" value={y1} onChange={(e) => changeY1(+e.target.value)}>
+              </Select>
+              <span className="text-muted">to</span>
+              <Select id="y1" aria-label="To year" value={y1} onChange={(e) => changeY1(+e.target.value)}>
                 {YEARS.map((y) => (
                   <option value={y} key={y}>
                     {y}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
-            <div className="pills" id="quickYears">
+            <Pills id="quickYears">
               {QUICK.map(([q, label]) => (
-                <button type="button" className="pill" data-q={q} aria-pressed={quickOn(q, y0, y1)} key={q} onClick={() => quick(q)}>
+                <Pill data-q={q} pressed={quickOn(q, y0, y1)} key={q} onClick={() => quick(q)}>
                   {label}
-                </button>
+                </Pill>
               ))}
-            </div>
-          </div>
-          <div className="grp">
-            <span className="t">How to show them</span>
-            <div className="seg" id="viewSeg" role="group" aria-label="Chart layout">
+            </Pills>
+          </Group>
+          <Group>
+            <GroupTitle>How to show them</GroupTitle>
+            <Seg id="viewSeg" role="group" aria-label="Chart layout">
               {VIEWS.map(([v, label]) => (
-                <button type="button" data-v={v} aria-pressed={view === v} key={v} onClick={() => changeView(v)}>
+                <SegButton data-v={v} pressed={view === v} key={v} onClick={() => changeView(v)}>
                   {label}
-                </button>
+                </SegButton>
               ))}
-            </div>
-            <label className="toggle">
-              <input type="checkbox" id="smooth" checked={smooth} onChange={(e) => setSmooth(e.target.checked)} /> Show 12-month average
-            </label>
-            <p className="xs muted" id="viewHelp">
+            </Seg>
+            <Toggle id="smooth" checked={smooth} onChange={(e) => setSmooth(e.target.checked)}>
+              Show 12-month average
+            </Toggle>
+            <p className="text-[13px] text-muted" id="viewHelp">
               {HELP[view]}
             </p>
-          </div>
+          </Group>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
-          <div className="readout" id="readout" aria-live="polite">
+        <div className="flex min-w-0 flex-col gap-3">
+          <Readout id="readout" aria-live="polite">
             {readout}
-          </div>
-          <div className="panels" id="panels" ref={panelsRef}>
+          </Readout>
+          <div className="flex flex-col gap-3.5" id="panels" ref={panelsRef}>
             {panels}
           </div>
         </div>
       </div>
-    </section>
+    </Card>
   )
 }
