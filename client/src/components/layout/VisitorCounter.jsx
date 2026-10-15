@@ -16,7 +16,9 @@ function loadCount() {
   if (!pending) {
     const counted = store.get(FLAG, false)
     pending = fetch('/api/visits', { method: counted ? 'GET' : 'POST' })
-      .then((res) => (res.ok ? res.json() : null))
+      // Always read the body, even for errors (503 before a database is
+      // connected); an unread body keeps the request open in the browser.
+      .then((res) => res.json().catch(() => null))
       .then((data) => {
         const count = typeof data?.count === 'number' ? data.count : null
         // Only remember the visit once the server has actually counted it,
