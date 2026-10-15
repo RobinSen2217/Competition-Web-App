@@ -1,8 +1,11 @@
 import { Link, NavLink } from 'react-router'
 import { cx } from '../../styles/classes'
+import { INSTITUTIONS } from '../../data/contact'
+import VoiceGuide from './VoiceGuide'
 
-// Sticky top bar: the app logo and one tab per module. The tab of the page
-// you are on is a solid accent pill (NavLink also sets aria-current="page").
+// Sticky top bar: the app logo with the partner institutions, the voice guide
+// button, and one tab per module. The tab of the page you are on is a solid
+// accent pill (NavLink also sets aria-current="page").
 
 const TABS = [
   ['/', 'Vegetation'],
@@ -26,6 +29,15 @@ export default function Nav() {
           {/* The name hides on narrow screens so the tabs get the room */}
           <span className="max-[761px]:hidden">Competition Web App</span>
         </Link>
+        {/* Partner institutions (text until the logo files are added); only on wide screens */}
+        <span className="mr-auto hidden border-l border-line pl-4 text-[13px] leading-tight text-muted min-[1100px]:block">
+          {INSTITUTIONS.map((i) => (
+            <span key={i.short} className="block">
+              {i.short}
+            </span>
+          ))}
+        </span>
+        <VoiceGuide className="ml-auto" />
         <div className="flex gap-0.5">
           {TABS.map(([to, label]) => (
             <NavLink

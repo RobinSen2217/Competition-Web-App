@@ -229,3 +229,22 @@ export function Note({ className, children, ...props }) {
     </p>
   )
 }
+
+/* ---- page structure ---- */
+
+// One top-level part of a page (About, Data Analysis ...): a large heading with
+// a rule, then that part's cards. `id` names the heading for aria-labelledby;
+// in-page links point at the cards' own ids.
+export function PageSection({ id, title, children }) {
+  return (
+    <section className="flex flex-col gap-7" aria-labelledby={id}>
+      <div className="flex items-center gap-4 pt-4">
+        <h2 id={id} className="text-[clamp(26px,3vw,34px)] whitespace-nowrap">
+          {title}
+        </h2>
+        <span className="h-px flex-1 bg-line" aria-hidden="true" />
+      </div>
+      {children}
+    </section>
+  )
+}
