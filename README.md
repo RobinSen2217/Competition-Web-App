@@ -1,8 +1,11 @@
-# Vegetation of the City
+# Competition Web App
 
 A physics-informed Earth observation and AI platform to assess the environmental
-effects on local population health. The web app shows how green each city is, how
-that has changed since 2010, which weather drives it, and where it is heading.
+effects on local population health. The web app has two modules:
+
+- **Vegetation** (`/`): how green each city is, how that has changed since 2010,
+  which weather drives it, and where it is heading.
+- **Disaster** (`/disaster`): to be built.
 
 ## Structure
 

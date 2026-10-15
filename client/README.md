@@ -1,8 +1,14 @@
-# Vegetation of the City: client
+# Competition Web App: client
 
-React 19 + Vite 8 front end for the satellite vegetation and climate explorer.
-It was ported from the single-file prototype (`vegetation-of-the-city/index.html`)
-and keeps that page's markup, styles and behaviour.
+React 19 + Vite 8 front end. One nav bar switches between two pages:
+
+| Path | Page |
+| --- | --- |
+| `/` | **Vegetation**: the satellite vegetation and climate explorer, ported from the single-file prototype (`vegetation-of-the-city/index.html`) |
+| `/disaster` | **Disaster**: empty for now (`src/pages/DisasterPage.jsx`) |
+
+Routing uses React Router (`src/App.jsx`). `vercel.json` rewrites every path to
+`index.html`, so `/disaster` also works when opened directly.
 
 ## Run it
 
@@ -31,7 +37,8 @@ public/
                             fetched on demand)
 src/
   main.jsx                  entry; imports Tailwind + tokens, Leaflet CSS, then Leaflet overrides
-  App.jsx                   page assembly, one component per section
+  App.jsx                   router: nav bar + the page for the current path
+  pages/                    VegetationPage (all its sections + footer), DisasterPage
   data/                     bundled datasets (see "Data" below)
   lib/
     data.js                 the single access point for all data (swap to API calls here later)
@@ -47,7 +54,7 @@ src/
     ui/                     shared Tailwind building blocks: Card, CardHead, Kicker, Lede, Chip, Pill,
                             Seg, Btn, Select, Toggle, Readout, Note ...
     common/                 Chart, Sparkline
-    layout/                 Nav, Footer
+    layout/                 Nav (logo + page tabs), Footer (vegetation page)
     sections/               Hero, Glance, PlotBuilder, Why, Outlook, Compare, Intro, Science,
                             Methods, Sources, Faq
     map/                    MapExplorer and its rail, planner and hooks

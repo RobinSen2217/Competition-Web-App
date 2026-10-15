@@ -1,45 +1,48 @@
+import { useEffect } from 'react'
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router'
 import AppProvider from './state/AppProvider'
 import Nav from './components/layout/Nav'
-import Footer from './components/layout/Footer'
-import Hero from './components/sections/Hero'
-import Glance from './components/sections/Glance'
-import MapExplorer from './components/map/MapExplorer'
-import PlotBuilder from './components/sections/PlotBuilder'
-import Why from './components/sections/Why'
-import Outlook from './components/sections/Outlook'
-import Compare from './components/sections/Compare'
-import Intro from './components/sections/Intro'
-import Science from './components/sections/Science'
-import Methods from './components/sections/Methods'
-import Sources from './components/sections/Sources'
-import Faq from './components/sections/Faq'
+import VegetationPage from './pages/VegetationPage'
+import DisasterPage from './pages/DisasterPage'
 
-// One long page. Each section has an in-page anchor id: home, glance, where, plot,
-// why, outlook, compare, intro, science, methods, sources, faq. Nav.jsx (links and
-// scroll highlighting) and Footer.jsx each list a subset of these ids, so update
-// them too when renaming a section.
+// Two pages under one nav bar:
+//   /          vegetation explorer
+//   /disaster  disaster module
+// Unknown paths go back to the vegetation page. On Vercel, client/vercel.json
+// rewrites every path to index.html so /disaster works when opened directly.
 export default function App() {
   return (
     <AppProvider>
-      <Nav />
-      {/* Page column: every section stacks with a 28px gap */}
-      <main className="mx-auto flex max-w-[1180px] flex-col gap-7 px-5 pt-7 pb-16">
-        {/* City picker and the data-driven sections all follow the selected city */}
-        <Hero />
-        <Glance />
-        <MapExplorer />
-        <PlotBuilder />
-        <Why />
-        <Outlook />
-        <Compare />
-        {/* Background reading */}
-        <Intro />
-        <Science />
-        <Methods />
-        <Sources />
-        <Faq />
-      </main>
-      <Footer />
+      <BrowserRouter>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route index element={<VegetationPage />} />
+            <Route path="disaster" element={<DisasterPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
     </AppProvider>
   )
+}
+
+// Shared frame: the nav bar above whichever page is active.
+function Layout() {
+  return (
+    <>
+      <ScrollToTop />
+      <Nav />
+      <Outlet />
+    </>
+  )
+}
+
+// Switching tabs starts the new page at the top. Links to a section (#plot)
+// are left alone so the browser can scroll to that section.
+function ScrollToTop() {
+  const { pathname, hash } = useLocation()
+  useEffect(() => {
+    if (!hash) window.scrollTo(0, 0)
+  }, [pathname, hash])
+  return null
 }
