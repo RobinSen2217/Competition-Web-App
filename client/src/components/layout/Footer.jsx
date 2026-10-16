@@ -32,7 +32,8 @@ export default function Footer() {
       <div>
         <b className={headCls}>Partners</b>
         {INSTITUTIONS.map((i) => (
-          <span key={i.short} className="block py-0.5">
+          <span key={i.short} className="flex items-center gap-2 py-1">
+            <img src={i.logo} alt="" className="h-7 w-auto flex-none" />
             {i.name}
           </span>
         ))}

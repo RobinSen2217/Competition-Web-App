@@ -43,12 +43,11 @@ export default function Nav() {
         >
           Competition Web App
         </Link>
-        {/* Partner institutions (text until the logo files are added); only on wide screens */}
-        <span className="mr-auto hidden border-l border-line pl-4 text-[13px] leading-tight text-muted min-[1100px]:block">
+        {/* Partner institution logos (names as tooltip and alt text). Hidden on
+            phones, where the tabs need the room. */}
+        <span className="mr-auto hidden items-center gap-3 border-l border-line pl-4 min-[640px]:flex">
           {INSTITUTIONS.map((i) => (
-            <span key={i.short} className="block">
-              {i.short}
-            </span>
+            <img key={i.short} src={i.logo} alt={i.name} title={i.name} className="h-9 w-auto" />
           ))}
         </span>
         {SHOW_VOICE_GUIDE && <VoiceGuide className="ml-auto" />}

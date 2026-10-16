@@ -14,9 +14,18 @@ export default function About() {
         <p>Green cover cools streets, holds soil and water, filters dust and supports crops on a city's edge. When it thins, people feel it as hotter nights, dustier air and stressed water supplies. Rising temperatures, fast urban growth, irregular rain and falling groundwater all act on it at once.</p>
         <p>This project combines free Earth-observation data from NASA, ESA and ISRO missions with physical indicators of heat, water and surface energy. The aim is a tool that shows how vegetation is changing in any chosen area, explains the main causes, and forecasts it a few months ahead for residents, planners, farmers, researchers and students.</p>
       </div>
-      <p className="text-[14px] text-muted">
-        A joint project of {INSTITUTIONS.map((i) => i.name).join(' and ')}.
-      </p>
+      {/* Partner logos beside the credit line; they are decorative here (alt="")
+          because the names are in the text */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <span className="flex items-center gap-3">
+          {INSTITUTIONS.map((i) => (
+            <img key={i.short} src={i.logo} alt="" className="h-11 w-auto" />
+          ))}
+        </span>
+        <p className="min-w-0 flex-1 basis-[260px] text-[14px] text-muted">
+          A joint project of {INSTITUTIONS.map((i) => i.name).join(' and ')}.
+        </p>
+      </div>
     </Card>
   )
 }
