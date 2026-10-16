@@ -7,6 +7,9 @@ import VoiceGuide from './VoiceGuide'
 // button, and one tab per module. The tab of the page you are on is a solid
 // accent pill (NavLink also sets aria-current="page").
 
+// The "Listen" voice guide (VoiceGuide.jsx) is hidden for now; set to true to show it again.
+const SHOW_VOICE_GUIDE = false
+
 const TABS = [
   ['/', 'Vegetation'],
   ['/disaster', 'Disaster'],
@@ -37,7 +40,7 @@ export default function Nav() {
             </span>
           ))}
         </span>
-        <VoiceGuide className="ml-auto" />
+        {SHOW_VOICE_GUIDE && <VoiceGuide className="ml-auto" />}
         <div className="flex gap-0.5">
           {TABS.map(([to, label]) => (
             <NavLink
