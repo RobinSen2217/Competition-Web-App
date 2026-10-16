@@ -22,7 +22,7 @@ const HAZARDS = [{ to: '/disaster/flood', label: 'Flood' }]
 // the sliding <ActivePill> paints it.
 const tabCls = (active) =>
   cx(
-    'relative inline-flex cursor-pointer items-center gap-1 rounded-full border-0 bg-transparent px-3 py-[7px] font-body text-[14px] leading-[normal] font-medium whitespace-nowrap no-underline transition-colors duration-150',
+    'relative inline-flex cursor-pointer items-center gap-1 rounded-full border-0 bg-transparent px-3 py-[7px] max-[380px]:px-2 font-body text-[14px] leading-[normal] font-medium whitespace-nowrap no-underline transition-colors duration-150',
     // The active tab keeps its accent colours on hover
     active ? 'text-on-accent' : 'text-muted hover:bg-accent-soft hover:text-ink',
   )
@@ -34,15 +34,14 @@ export default function Nav() {
       className="sticky top-[env(safe-area-inset-top,0px)] z-[1000] border-b border-line bg-[color-mix(in_srgb,var(--bg)_88%,transparent)] backdrop-blur-[10px]"
       aria-label="Main"
     >
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 px-5 py-2.5">
-        <Link className="flex items-center gap-2.5 font-display text-[19px] font-semibold whitespace-nowrap text-ink no-underline" to="/">
-          <svg className="flex-none" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
-            <circle cx="15" cy="15" r="14" fill="var(--accent-soft)" />
-            <path d="M9 20c0-7 5-11 13-12-1 8-5 13-12 13" fill="var(--accent)" />
-            <path d="M10 21c3-4 6-7 10-10" stroke="var(--surface)" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-          </svg>
-          {/* The name hides on narrow screens so the tabs get the room */}
-          <span className="max-[761px]:hidden">Competition Web App</span>
+      <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 px-5 py-2.5 max-[380px]:gap-2 max-[380px]:px-4">
+        {/* App name (no logo for now). Smaller on phones, and on the narrowest
+            screens it wraps onto two lines, so it always fits next to the tabs */}
+        <Link
+          className="font-display text-[19px] font-semibold whitespace-nowrap text-ink no-underline max-[480px]:text-[16px] max-[380px]:max-w-[90px] max-[380px]:text-[14px] max-[380px]:leading-tight max-[380px]:whitespace-normal"
+          to="/"
+        >
+          Competition Web App
         </Link>
         {/* Partner institutions (text until the logo files are added); only on wide screens */}
         <span className="mr-auto hidden border-l border-line pl-4 text-[13px] leading-tight text-muted min-[1100px]:block">
@@ -189,10 +188,7 @@ function DisasterMenu({ active, pathname }) {
             // Right-aligned with the tab, so at 400px it stays inside the screen
             className="absolute top-full right-0 mt-2 w-[200px] max-w-[calc(100vw-40px)] rounded-[16px] border border-line bg-surface p-1.5 shadow-card"
           >
-            <p id={menuId + '-t'} className="px-2.5 pt-1 pb-1.5 text-[12px] font-semibold tracking-[.06em] text-muted uppercase">
-              Hazards
-            </p>
-            <ul aria-labelledby={menuId + '-t'}>
+            <ul aria-label="Disaster types">
               {HAZARDS.map((h) => (
                 <li key={h.to}>
                   <NavLink
