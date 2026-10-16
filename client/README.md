@@ -99,23 +99,14 @@ its three mosaics to `mapmeta.json` and `public/map`, and its rasters under
 
 ## Visitor counter
 
-The footer shows "Visitors: N". The count lives in a free Upstash Redis
-database, read and updated by the Vercel Function `api/visits.js`
-(`GET /api/visits` reads the total, `POST /api/visits` adds one).
+The footer shows "Visitors: N". The number is kept by
+[Abacus](https://abacus.jsn.cam), a free public counter service, so no database
+or setup is needed (`src/components/layout/VisitorCounter.jsx`).
 
-Setup (once):
-
-1. Vercel dashboard -> this project -> **Storage** -> create (or connect) an
-   **Upstash Redis** database from the Marketplace (the free plan is enough) and
-   connect it to this project. This adds the environment variables
-   (`KV_REST_API_URL` + `KV_REST_API_TOKEN`, or `UPSTASH_REDIS_REST_URL` +
-   `UPSTASH_REDIS_REST_TOKEN`; the function accepts either).
-2. Redeploy, so the function picks up the new variables.
-
-How it counts: each browser is counted once. The first visit sends a `POST` and,
-only if it succeeds, stores a flag in localStorage (`votc-visited`); later visits
-just read the total. Clearing site data or using another browser counts again.
-
-Until the database is connected the function returns `503` and the counter stays
-hidden. It is also hidden in `npm run dev`, because `/api` is proxied to the
-Express server rather than to Vercel (`vercel dev` runs the function locally).
+- Each browser is counted once: the first visit adds one and stores a flag in
+  localStorage (`votc-visited`); later visits only read the total.
+- Only the live domain (`LIVE_HOST` in the component) adds visitors. Local dev
+  and Vercel preview links just read the number. Update `LIVE_HOST` if the site
+  moves to a new domain.
+- The counter expires after 6 months without any visit, and the footer line is
+  hidden if the service can't be reached.

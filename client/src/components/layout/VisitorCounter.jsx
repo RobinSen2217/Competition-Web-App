@@ -1,11 +1,21 @@
 import { useEffect, useState } from 'react'
 import { store } from '../../lib/storage'
 
-// Footer line "Visitors: 1,234", backed by the /api/visits Vercel Function.
-// Each browser is counted once: the first visit POSTs (+1) and stores a flag,
-// later visits only GET the total. Renders nothing if the API is unreachable
-// or not configured (local dev, or before a database is connected).
+// Footer line "Visitors: 1,234".
+// The number is kept by Abacus (https://abacus.jsn.cam), a free public counter
+// service that needs no account or database: /hit adds one and returns the new
+// total, /get only reads it. A counter expires after 6 months without any
+// request, so it lasts as long as the site gets visitors.
+// Each browser is counted once: the first visit "hits" and stores a flag, later
+// visits only read the total. Renders nothing if the service can't be reached.
 
+const COUNTER = 'https://abacus.jasoncameron.dev'
+const NAMESPACE = 'competition-web-app-black'
+const KEY = 'visitors'
+// Only the live site adds visitors. Local development and Vercel preview links
+// just read the number, so testing never inflates it. Change this if the site
+// moves to another domain.
+const LIVE_HOST = 'competition-web-app-black.vercel.app'
 const FLAG = 'visited'
 
 // One request per page load, shared by every mount. StrictMode mounts effects
@@ -14,16 +24,14 @@ let pending = null
 
 function loadCount() {
   if (!pending) {
-    const counted = store.get(FLAG, false)
-    pending = fetch('/api/visits', { method: counted ? 'GET' : 'POST' })
-      // Always read the body, even for errors (503 before a database is
-      // connected); an unread body keeps the request open in the browser.
+    const add = window.location.hostname === LIVE_HOST && !store.get(FLAG, false)
+    pending = fetch(`${COUNTER}/${add ? 'hit' : 'get'}/${NAMESPACE}/${KEY}`)
       .then((res) => res.json().catch(() => null))
       .then((data) => {
-        const count = typeof data?.count === 'number' ? data.count : null
-        // Only remember the visit once the server has actually counted it,
-        // so a failed POST is retried on the next visit.
-        if (!counted && count != null) store.set(FLAG, true)
+        const count = typeof data?.value === 'number' ? data.value : null
+        // Only remember the visit once the service has actually counted it,
+        // so a failed attempt is retried on the next visit.
+        if (add && count != null) store.set(FLAG, true)
         return count
       })
       .catch(() => null)
