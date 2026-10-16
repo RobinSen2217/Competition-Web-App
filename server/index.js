@@ -1,14 +1,26 @@
-require('dotenv').config()
-const express = require('express')
-const cors = require('cors')
+// Entry point: loads .env, builds the app and starts listening.
+// The app itself lives in src/app.js so tests can start it on their own port.
 
-const app = express()
-app.use(cors())
-app.use(express.json())
+require('dotenv').config({ quiet: true })
+const { createApp } = require('./src/app')
 
-app.get('/api/hello', (req, res) => {
-  res.json({ message: 'Hello from Express!' })
+// 5050 by default: macOS uses 5000 for AirPlay Receiver.
+const PORT = Number(process.env.PORT) || 5050
+
+createApp().listen(PORT, async () => {
+  console.log(`Server running on port ${PORT}`)
+  // Another program can answer on the same port even though listen()
+  // succeeded (e.g. macOS AirPlay Receiver on 5000, replying with empty 403s).
+  // Ask ourselves for /api/health to catch that.
+  try {
+    const res = await fetch(`http://localhost:${PORT}/api/health`)
+    const body = await res.json()
+    if (body.service !== 'competition-web-app-api') throw new Error('unexpected reply')
+  } catch {
+    console.warn(
+      `Warning: http://localhost:${PORT} is answered by another program, not this API. ` +
+        'On macOS turn off System Settings > General > AirDrop & Handoff > AirPlay Receiver, ' +
+        'or set PORT to a free port in server/.env.',
+    )
+  }
 })
-
-const PORT = process.env.PORT || 5000
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`))

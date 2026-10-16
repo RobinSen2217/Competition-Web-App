@@ -15,7 +15,14 @@
     />
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Shown while main.jsx loads the data (API or bundled copy); React replaces it.
+         Colours match the --bg / --muted tokens in src/index.css, light and dark. -->
+    <style>
+      .boot { min-height: 100vh; display: grid; place-items: center; margin: 0; background: #eef3ec; color: #566a5e; font: 15px system-ui, -apple-system, "Segoe UI", sans-serif; }
+      @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .boot { background: #0f1713; color: #9fb2a6; } }
+      :root[data-theme="dark"] .boot { background: #0f1713; color: #9fb2a6; }
+    </style>
+    <div id="root"><div class="boot" role="status">Loading data…</div></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

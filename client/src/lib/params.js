@@ -19,7 +19,7 @@ export const PARAMS = [
   { k: 'wind', label: 'Wind speed', short: 'Wind', unit: 'm/s', dec: 1, grp: 'Weather and air', src: 'NASA POWER' },
   { k: 'uv', label: 'UV index', short: 'UV', unit: '', dec: 1, grp: 'Weather and air', src: 'NASA POWER' },
   { k: 'aod', label: 'Aerosol (haze and dust)', short: 'Aerosol', unit: 'AOD', dec: 2, grp: 'Weather and air', src: 'NASA POWER' },
-  { k: 'sun', label: 'Sunshine', short: 'Sunshine', unit: 'kWh/m²/day', dec: 1, grp: 'Weather and air', src: 'NASA POWER' },
+  { k: 'sun', label: 'Sunshine', short: 'Sunshine', unit: 'MJ/m²/day', dec: 1, grp: 'Weather and air', src: 'NASA POWER' },
 ]
 
 export const P = Object.fromEntries(PARAMS.map((p) => [p.k, p]))

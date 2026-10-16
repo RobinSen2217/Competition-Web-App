@@ -1,0 +1,272 @@
+{
+ "jaipur": {
+  "ndviBounds": [
+   [
+    26.86875,
+    75.73956
+   ],
+   [
+    26.95417,
+    75.83535
+   ]
+  ],
+  "lstBounds": [
+   [
+    26.86667,
+    75.73559
+   ],
+   [
+    26.95833,
+    75.83839
+   ]
+  ],
+  "years": {
+   "2010": "/map/raster/jaipur/ndvi-2010.png",
+   "2011": "/map/raster/jaipur/ndvi-2011.png",
+   "2012": "/map/raster/jaipur/ndvi-2012.png",
+   "2013": "/map/raster/jaipur/ndvi-2013.png",
+   "2014": "/map/raster/jaipur/ndvi-2014.png",
+   "2015": "/map/raster/jaipur/ndvi-2015.png",
+   "2016": "/map/raster/jaipur/ndvi-2016.png",
+   "2017": "/map/raster/jaipur/ndvi-2017.png",
+   "2018": "/map/raster/jaipur/ndvi-2018.png",
+   "2019": "/map/raster/jaipur/ndvi-2019.png",
+   "2020": "/map/raster/jaipur/ndvi-2020.png",
+   "2021": "/map/raster/jaipur/ndvi-2021.png",
+   "2022": "/map/raster/jaipur/ndvi-2022.png",
+   "2023": "/map/raster/jaipur/ndvi-2023.png",
+   "2024": "/map/raster/jaipur/ndvi-2024.png",
+   "2025": "/map/raster/jaipur/ndvi-2025.png",
+   "2026": "/map/raster/jaipur/ndvi-2026.png"
+  },
+  "change": "/map/raster/jaipur/change.png",
+  "lstDay": "/map/raster/jaipur/lst-day.png",
+  "lstNight": "/map/raster/jaipur/lst-night.png",
+  "values": "/map/raster/jaipur/values.json"
+ },
+ "jodhpur": {
+  "ndviBounds": [
+   [
+    26.19583,
+    72.97557
+   ],
+   [
+    26.28125,
+    73.0708
+   ]
+  ],
+  "lstBounds": [
+   [
+    26.19167,
+    72.96794
+   ],
+   [
+    26.28333,
+    73.07014
+   ]
+  ],
+  "years": {
+   "2010": "/map/raster/jodhpur/ndvi-2010.png",
+   "2011": "/map/raster/jodhpur/ndvi-2011.png",
+   "2012": "/map/raster/jodhpur/ndvi-2012.png",
+   "2013": "/map/raster/jodhpur/ndvi-2013.png",
+   "2014": "/map/raster/jodhpur/ndvi-2014.png",
+   "2015": "/map/raster/jodhpur/ndvi-2015.png",
+   "2016": "/map/raster/jodhpur/ndvi-2016.png",
+   "2017": "/map/raster/jodhpur/ndvi-2017.png",
+   "2018": "/map/raster/jodhpur/ndvi-2018.png",
+   "2019": "/map/raster/jodhpur/ndvi-2019.png",
+   "2020": "/map/raster/jodhpur/ndvi-2020.png",
+   "2021": "/map/raster/jodhpur/ndvi-2021.png",
+   "2022": "/map/raster/jodhpur/ndvi-2022.png",
+   "2023": "/map/raster/jodhpur/ndvi-2023.png",
+   "2024": "/map/raster/jodhpur/ndvi-2024.png",
+   "2025": "/map/raster/jodhpur/ndvi-2025.png",
+   "2026": "/map/raster/jodhpur/ndvi-2026.png"
+  },
+  "change": "/map/raster/jodhpur/change.png",
+  "lstDay": "/map/raster/jodhpur/lst-day.png",
+  "lstNight": "/map/raster/jodhpur/lst-night.png",
+  "values": "/map/raster/jodhpur/values.json"
+ },
+ "jaisalmer": {
+  "ndviBounds": [
+   [
+    26.86875,
+    70.88231
+   ],
+   [
+    26.95417,
+    70.9781
+   ]
+  ],
+  "lstBounds": [
+   [
+    26.86667,
+    70.87595
+   ],
+   [
+    26.95833,
+    70.97875
+   ]
+  ],
+  "years": {
+   "2010": "/map/raster/jaisalmer/ndvi-2010.png",
+   "2011": "/map/raster/jaisalmer/ndvi-2011.png",
+   "2012": "/map/raster/jaisalmer/ndvi-2012.png",
+   "2013": "/map/raster/jaisalmer/ndvi-2013.png",
+   "2014": "/map/raster/jaisalmer/ndvi-2014.png",
+   "2015": "/map/raster/jaisalmer/ndvi-2015.png",
+   "2016": "/map/raster/jaisalmer/ndvi-2016.png",
+   "2017": "/map/raster/jaisalmer/ndvi-2017.png",
+   "2018": "/map/raster/jaisalmer/ndvi-2018.png",
+   "2019": "/map/raster/jaisalmer/ndvi-2019.png",
+   "2020": "/map/raster/jaisalmer/ndvi-2020.png",
+   "2021": "/map/raster/jaisalmer/ndvi-2021.png",
+   "2022": "/map/raster/jaisalmer/ndvi-2022.png",
+   "2023": "/map/raster/jaisalmer/ndvi-2023.png",
+   "2024": "/map/raster/jaisalmer/ndvi-2024.png",
+   "2025": "/map/raster/jaisalmer/ndvi-2025.png",
+   "2026": "/map/raster/jaisalmer/ndvi-2026.png"
+  },
+  "change": "/map/raster/jaisalmer/change.png",
+  "lstDay": "/map/raster/jaisalmer/lst-day.png",
+  "lstNight": "/map/raster/jaisalmer/lst-night.png",
+  "values": "/map/raster/jaisalmer/values.json"
+ },
+ "bikaner": {
+  "ndviBounds": [
+   [
+    27.97917,
+    73.26385
+   ],
+   [
+    28.06458,
+    73.36061
+   ]
+  ],
+  "lstBounds": [
+   [
+    27.975,
+    73.26314
+   ],
+   [
+    28.06667,
+    73.36698
+   ]
+  ],
+  "years": {
+   "2010": "/map/raster/bikaner/ndvi-2010.png",
+   "2011": "/map/raster/bikaner/ndvi-2011.png",
+   "2012": "/map/raster/bikaner/ndvi-2012.png",
+   "2013": "/map/raster/bikaner/ndvi-2013.png",
+   "2014": "/map/raster/bikaner/ndvi-2014.png",
+   "2015": "/map/raster/bikaner/ndvi-2015.png",
+   "2016": "/map/raster/bikaner/ndvi-2016.png",
+   "2017": "/map/raster/bikaner/ndvi-2017.png",
+   "2018": "/map/raster/bikaner/ndvi-2018.png",
+   "2019": "/map/raster/bikaner/ndvi-2019.png",
+   "2020": "/map/raster/bikaner/ndvi-2020.png",
+   "2021": "/map/raster/bikaner/ndvi-2021.png",
+   "2022": "/map/raster/bikaner/ndvi-2022.png",
+   "2023": "/map/raster/bikaner/ndvi-2023.png",
+   "2024": "/map/raster/bikaner/ndvi-2024.png",
+   "2025": "/map/raster/bikaner/ndvi-2025.png",
+   "2026": "/map/raster/bikaner/ndvi-2026.png"
+  },
+  "change": "/map/raster/bikaner/change.png",
+  "lstDay": "/map/raster/bikaner/lst-day.png",
+  "lstNight": "/map/raster/bikaner/lst-night.png",
+  "values": "/map/raster/bikaner/values.json"
+ },
+ "udaipur": {
+  "ndviBounds": [
+   [
+    24.54167,
+    73.66529
+   ],
+   [
+    24.62708,
+    73.75922
+   ]
+  ],
+  "lstBounds": [
+   [
+    24.54167,
+    73.66254
+   ],
+   [
+    24.63333,
+    73.76335
+   ]
+  ],
+  "years": {
+   "2010": "/map/raster/udaipur/ndvi-2010.png",
+   "2011": "/map/raster/udaipur/ndvi-2011.png",
+   "2012": "/map/raster/udaipur/ndvi-2012.png",
+   "2013": "/map/raster/udaipur/ndvi-2013.png",
+   "2014": "/map/raster/udaipur/ndvi-2014.png",
+   "2015": "/map/raster/udaipur/ndvi-2015.png",
+   "2016": "/map/raster/udaipur/ndvi-2016.png",
+   "2017": "/map/raster/udaipur/ndvi-2017.png",
+   "2018": "/map/raster/udaipur/ndvi-2018.png",
+   "2019": "/map/raster/udaipur/ndvi-2019.png",
+   "2020": "/map/raster/udaipur/ndvi-2020.png",
+   "2021": "/map/raster/udaipur/ndvi-2021.png",
+   "2022": "/map/raster/udaipur/ndvi-2022.png",
+   "2023": "/map/raster/udaipur/ndvi-2023.png",
+   "2024": "/map/raster/udaipur/ndvi-2024.png",
+   "2025": "/map/raster/udaipur/ndvi-2025.png",
+   "2026": "/map/raster/udaipur/ndvi-2026.png"
+  },
+  "change": "/map/raster/udaipur/change.png",
+  "lstDay": "/map/raster/udaipur/lst-day.png",
+  "lstNight": "/map/raster/udaipur/lst-night.png",
+  "values": "/map/raster/udaipur/values.json"
+ },
+ "delhi": {
+  "ndviBounds": [
+   [
+    28.57083,
+    77.16121
+   ],
+   [
+    28.65625,
+    77.25851
+   ]
+  ],
+  "lstBounds": [
+   [
+    28.56667,
+    77.1557
+   ],
+   [
+    28.65833,
+    77.26012
+   ]
+  ],
+  "years": {
+   "2010": "/map/raster/delhi/ndvi-2010.png",
+   "2011": "/map/raster/delhi/ndvi-2011.png",
+   "2012": "/map/raster/delhi/ndvi-2012.png",
+   "2013": "/map/raster/delhi/ndvi-2013.png",
+   "2014": "/map/raster/delhi/ndvi-2014.png",
+   "2015": "/map/raster/delhi/ndvi-2015.png",
+   "2016": "/map/raster/delhi/ndvi-2016.png",
+   "2017": "/map/raster/delhi/ndvi-2017.png",
+   "2018": "/map/raster/delhi/ndvi-2018.png",
+   "2019": "/map/raster/delhi/ndvi-2019.png",
+   "2020": "/map/raster/delhi/ndvi-2020.png",
+   "2021": "/map/raster/delhi/ndvi-2021.png",
+   "2022": "/map/raster/delhi/ndvi-2022.png",
+   "2023": "/map/raster/delhi/ndvi-2023.png",
+   "2024": "/map/raster/delhi/ndvi-2024.png",
+   "2025": "/map/raster/delhi/ndvi-2025.png",
+   "2026": "/map/raster/delhi/ndvi-2026.png"
+  },
+  "change": "/map/raster/delhi/change.png",
+  "lstDay": "/map/raster/delhi/lst-day.png",
+  "lstNight": "/map/raster/delhi/lst-night.png",
+  "values": "/map/raster/delhi/values.json"
+ }
+}

@@ -23,7 +23,9 @@ npm run preview    # serve the build
 npm run lint       # oxlint
 ```
 
-`vite.config.js` proxies `/api` to `http://localhost:5000` for the Express server in `../server`.
+`vite.config.js` proxies `/api` to `http://localhost:5050` for the Express server in `../server`
+(start it with `npm run dev` there). Without the server the site still works on its bundled data;
+see [Data](#data).
 
 ## Layout
 
@@ -33,15 +35,15 @@ public/
   map/                      satellite mosaics (<id>.jpg) and place-name overlays (<id>_lab.png)
   map/s2_*.jpg              Sentinel-2 10 m layers (Jaisalmer only)
   map/raster/<city>/        per-city MODIS rasters: ndvi-<year>.png, change.png, lst-day.png,
-                            lst-night.png, and values.json (per-pixel numbers for the pixel inspector,
-                            fetched on demand)
+                            lst-night.png, and values.json (bundled per-pixel numbers for the pixel
+                            inspector, used only when the API is unavailable)
 src/
-  main.jsx                  entry; imports Tailwind + tokens, Leaflet CSS, then Leaflet overrides
+  main.jsx                  entry; imports the CSS, awaits initData(), then loads App.jsx
   App.jsx                   router: nav bar + the page for the current path
   pages/                    VegetationPage (all its sections + footer), DisasterPage
-  data/                     bundled datasets (see "Data" below)
+  data/                     bundled fallback datasets (see "Data" below)
   lib/
-    data.js                 the single access point for all data (swap to API calls here later)
+    data.js                 the single access point for all data: loads it from the API (or the bundle)
     months.js params.js     month helpers, parameter definitions and number formatting
     stats.js                climatology, anomalies, OLS, correlation, baseline forecast
     chart.js                small SVG line-chart engine (used through components/common/Chart)
@@ -82,19 +84,51 @@ Styling is Tailwind CSS v4 utilities, written directly on the elements.
 
 ## Data
 
-| File | Contents |
-| --- | --- |
-| `src/data/climate.json` | `{ months: ["2010-01", ...], cities: { id: { name, state, lat, lon, series: { ndvi, rain, ... } } } }`, monthly values from Jan 2010 |
-| `src/data/boundaries.json` | district outline (GeoJSON geometry) for each city |
-| `src/data/mapmeta.json` | bounds and zoom of every basemap mosaic in `public/map` |
-| `src/data/rasters.json` | raster bounds and image URLs per city, plus the URL of its `values.json` |
+The site loads its data from the Express API in `../server` at startup and
+falls back to bundled copies when the API cannot be reached.
 
-Every read goes through `src/lib/data.js`. When the server is ready, change
-that one module to load from the API (for example serve the same JSON from
-`/api/...`). The components do not need to change.
+`src/lib/data.js` is the single access point. Before React renders, `main.jsx`
+awaits `initData()`, which fetches these four endpoints in parallel (4 s timeout):
 
-To add a city, add its series to `climate.json`, its outline to `boundaries.json`,
-its three mosaics to `mapmeta.json` and `public/map`, and its rasters under
+| Endpoint | Bundled fallback | Contents |
+| --- | --- | --- |
+| `/api/climate` | `src/data/climate.json` | `{ months: ["2010-01", ...], cities: { id: { name, state, lat, lon, series: { ndvi, rain, ... } } } }`, monthly values from Jan 2010 |
+| `/api/boundaries` | `src/data/boundaries.json` | district outline (GeoJSON geometry) for each city |
+| `/api/map/mosaics` | `src/data/mapmeta.json` | bounds and zoom of every basemap mosaic in `public/map` |
+| `/api/map/rasters` | `src/data/rasters.json` | raster bounds and image URLs per city, plus where its per-pixel values live |
+
+If all four succeed and look valid, the API data is used; if any one fails, all
+four come from the bundle (sources are never mixed). The browser console logs
+which one is in use (`[data] using API ...` or `[data] using bundled data`).
+The per-pixel values for the map's pixel inspector are fetched on demand from
+`/api/cities/<id>/pixels` (API) or `public/map/raster/<id>/values.json` (bundled).
+Map images (`public/map/...`) are always static files served with the site.
+
+Rule: nothing that reads the data may be imported before `initData()` finishes
+(for example `lib/months.js` computes the year range at import time). That is why
+`main.jsx` imports `App.jsx` dynamically. Components import from `lib/data.js` as usual.
+
+### API URL (`VITE_API_URL`)
+
+| Where | Setting | Result |
+| --- | --- | --- |
+| Local dev | unset | requests go to `/api` on the dev server, which Vite proxies to `http://localhost:5050` |
+| Production (Vercel) | unset | the API is skipped and the bundled data is used (no requests are made) |
+| Production (Vercel) | `https://<server-domain>` | requests go to the hosted Express server |
+
+Set it in Vercel under Project Settings > Environment Variables, or locally in
+`.env.local` (see `.env.example`). Give the base URL only, without `/api`. Vite
+bakes it in at build time, so redeploy after changing it. The server must allow
+the site's origin in its `CORS_ORIGINS`.
+
+Until the API is hosted, production runs on the bundled data. Once it is live,
+the bundled copies (`src/data/climate.json`, `boundaries.json`, `mapmeta.json`,
+`rasters.json` and `public/map/raster/*/values.json`) can be removed together
+with the fallback in `lib/data.js`.
+
+To add a city, add it to the server's data files (and to the bundled copies while
+they exist): its series to `climate.json`, its outline to `boundaries.json`, its
+three mosaics to `mapmeta.json` and `public/map`, and its rasters under
 `public/map/raster/<city>/` with an entry in `rasters.json`.
 
 ## Visitor counter

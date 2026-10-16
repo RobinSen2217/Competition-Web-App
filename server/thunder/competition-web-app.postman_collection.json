@@ -1,0 +1,517 @@
+{
+  "info": {
+    "name": "Competition Web App API",
+    "description": "REST API serving the Competition Web App data (cities, monthly climate and vegetation series, district outlines, map rasters). Set the baseUrl variable to point at another server. Expected status for each request is in its description.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5050",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Meta",
+      "description": "Service status and parameter list.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "description": "Service status, data timestamp and counts. Expect 200. Never cached."
+          }
+        },
+        {
+          "name": "Parameters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/parameters",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "parameters"
+              ]
+            },
+            "description": "Label, unit, decimals, group and source of every series key. Expect 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cities",
+      "description": "Per-city endpoints. Swap \"jaipur\" for any id from List cities.",
+      "item": [
+        {
+          "name": "List cities",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities"
+              ]
+            },
+            "description": "All cities with name, state and coordinates. Expect 200."
+          }
+        },
+        {
+          "name": "City details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/jaipur",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                "jaipur"
+              ]
+            },
+            "description": "One city with its parameter keys and month range. Expect 200."
+          }
+        },
+        {
+          "name": "Series (all)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/jaipur/series",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                "jaipur",
+                "series"
+              ]
+            },
+            "description": "Every parameter for every month. Expect 200."
+          }
+        },
+        {
+          "name": "Series (filtered)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/jaipur/series?params=ndvi,rain&from=2015-01&to=2020-12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                "jaipur",
+                "series"
+              ],
+              "query": [
+                {
+                  "key": "params",
+                  "value": "ndvi,rain",
+                  "description": "Comma-separated keys from /api/parameters. Optional (default: all)."
+                },
+                {
+                  "key": "from",
+                  "value": "2015-01",
+                  "description": "First month, YYYY-MM. Optional."
+                },
+                {
+                  "key": "to",
+                  "value": "2020-12",
+                  "description": "Last month, YYYY-MM. Optional."
+                }
+              ]
+            },
+            "description": "NDVI and rainfall from Jan 2015 to Dec 2020 (inclusive). Missing months are null. Expect 200."
+          }
+        },
+        {
+          "name": "Boundary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/jaipur/boundary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                "jaipur",
+                "boundary"
+              ]
+            },
+            "description": "District outline as a GeoJSON geometry. Expect 200."
+          }
+        },
+        {
+          "name": "Rasters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/jaipur/rasters",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                "jaipur",
+                "rasters"
+              ]
+            },
+            "description": "Raster bounds, image paths (static files on the website) and the pixels link. Expect 200."
+          }
+        },
+        {
+          "name": "Pixels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/jaipur/pixels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                "jaipur",
+                "pixels"
+              ]
+            },
+            "description": "Per-pixel grids: NDVI x1000 per year (41x41), change (41x41), LST day/night x10 in °C (11x11). Expect 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bulk (website startup)",
+      "description": "One request each for everything the website loads up front.",
+      "item": [
+        {
+          "name": "Climate (all cities)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/climate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "climate"
+              ]
+            },
+            "description": "Months plus every city with all its series. Expect 200."
+          }
+        },
+        {
+          "name": "Boundaries (all cities)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/boundaries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "boundaries"
+              ]
+            },
+            "description": "District outline per city id. Expect 200."
+          }
+        },
+        {
+          "name": "Map mosaics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/map/mosaics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "map",
+                "mosaics"
+              ]
+            },
+            "description": "Bounds and zoom of every basemap mosaic. Expect 200."
+          }
+        },
+        {
+          "name": "Map rasters (all cities)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/map/rasters",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "map",
+                "rasters"
+              ]
+            },
+            "description": "Raster metadata per city id. Expect 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Errors",
+      "description": "Example failures. Every error body is {\"error\":{\"status\",\"message\"}}.",
+      "item": [
+        {
+          "name": "Unknown city",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/atlantis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                "atlantis"
+              ]
+            },
+            "description": "City id that does not exist. Expect 404."
+          }
+        },
+        {
+          "name": "Unknown parameter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/jaipur/series?params=ndvi,bogus",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                "jaipur",
+                "series"
+              ],
+              "query": [
+                {
+                  "key": "params",
+                  "value": "ndvi,bogus",
+                  "description": "bogus is not a parameter"
+                }
+              ]
+            },
+            "description": "A params key that does not exist. Expect 400."
+          }
+        },
+        {
+          "name": "Malformed month",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/jaipur/series?from=2020-13",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                "jaipur",
+                "series"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2020-13",
+                  "description": "invalid month"
+                }
+              ]
+            },
+            "description": "Month 13 is not a valid YYYY-MM. Expect 400."
+          }
+        },
+        {
+          "name": "From after to",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/jaipur/series?from=2021-01&to=2020-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                "jaipur",
+                "series"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2021-01",
+                  "description": ""
+                },
+                {
+                  "key": "to",
+                  "value": "2020-01",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "\"from\" later than \"to\". Expect 400."
+          }
+        },
+        {
+          "name": "Unknown route",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/nope",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "nope"
+              ]
+            },
+            "description": "No such endpoint. Expect 404."
+          }
+        }
+      ]
+    }
+  ]
+}
