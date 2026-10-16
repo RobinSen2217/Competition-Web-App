@@ -1,0 +1,1217 @@
+{
+  "info": {
+    "name": "Competition Web App API v1",
+    "description": "REST API v1 serving the Competition Web App data (areas, parameters, timeseries, map layers and their values, basemap). Full reference: server/docs/API.md. Set the baseUrl variable to point at another server. Expected status for each request is in its description.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5050",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Service",
+      "description": "Health and parameter catalog.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            },
+            "description": "Service status, versions and data timestamp. Expect 200. Never cached."
+          }
+        },
+        {
+          "name": "Parameters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/parameters",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "parameters"
+              ]
+            },
+            "description": "Label, unit, decimals, aggregation and intervals of every series key. Expect 200."
+          }
+        },
+        {
+          "name": "Parameter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/parameters/rain",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "parameters",
+                "rain"
+              ]
+            },
+            "description": "One parameter by key. Expect 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Areas",
+      "description": "Places the API has data for (cities today).",
+      "item": [
+        {
+          "name": "List areas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas"
+              ]
+            },
+            "description": "Every area with region, center and data coverage. Expect 200."
+          }
+        },
+        {
+          "name": "List cities with boundary and layers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas?type=city&include=boundary,layers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "city"
+                },
+                {
+                  "key": "include",
+                  "value": "boundary,layers"
+                }
+              ]
+            },
+            "description": "type filter plus embedded extras (include=* gives all). Expect 200."
+          }
+        },
+        {
+          "name": "Area",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur"
+              ]
+            },
+            "description": "One area. Expect 200."
+          }
+        },
+        {
+          "name": "Area with layers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaisalmer?include=layers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaisalmer"
+              ],
+              "query": [
+                {
+                  "key": "include",
+                  "value": "layers"
+                }
+              ]
+            },
+            "description": "One area with its map layers embedded. Expect 200."
+          }
+        },
+        {
+          "name": "Boundary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/boundary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "boundary"
+              ]
+            },
+            "description": "District outline as a GeoJSON Feature. Expect 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Timeseries",
+      "description": "Monthly series for one or many areas.",
+      "item": [
+        {
+          "name": "Timeseries (several areas)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/timeseries?areas=jaipur,delhi&parameters=ndvi,rain&from=2015-01&to=2020-12&interval=monthly",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "areas",
+                  "value": "jaipur,delhi"
+                },
+                {
+                  "key": "parameters",
+                  "value": "ndvi,rain"
+                },
+                {
+                  "key": "from",
+                  "value": "2015-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2020-12"
+                },
+                {
+                  "key": "interval",
+                  "value": "monthly"
+                }
+              ]
+            },
+            "description": "NDVI and rainfall for two cities, Jan 2015 to Dec 2020 inclusive. Missing months are null. Expect 200."
+          }
+        },
+        {
+          "name": "Timeseries (everything)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/timeseries?areas=*&parameters=*",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "areas",
+                  "value": "*"
+                },
+                {
+                  "key": "parameters",
+                  "value": "*"
+                }
+              ]
+            },
+            "description": "Every area and every parameter for the full range. Expect 200."
+          }
+        },
+        {
+          "name": "Timeseries (every city)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/timeseries?areas=*&type=city&parameters=*&interval=monthly",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "areas",
+                  "value": "*"
+                },
+                {
+                  "key": "type",
+                  "value": "city"
+                },
+                {
+                  "key": "parameters",
+                  "value": "*"
+                },
+                {
+                  "key": "interval",
+                  "value": "monthly"
+                }
+              ]
+            },
+            "description": "type filters areas=* like on /areas (what the website loads at startup). Expect 200."
+          }
+        },
+        {
+          "name": "Timeseries (type with no areas)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/timeseries?areas=*&type=custom&parameters=ndvi&from=2026-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "areas",
+                  "value": "*"
+                },
+                {
+                  "key": "type",
+                  "value": "custom"
+                },
+                {
+                  "key": "parameters",
+                  "value": "ndvi"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01"
+                }
+              ]
+            },
+            "description": "No area has type custom yet, so data.areas is {}. Expect 200."
+          }
+        },
+        {
+          "name": "Area timeseries",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/timeseries?parameters=ndvi,rain&from=2024-01&to=2030-12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "parameters",
+                  "value": "ndvi,rain"
+                },
+                {
+                  "key": "from",
+                  "value": "2024-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2030-12"
+                }
+              ]
+            },
+            "description": "One area; parameters default to all. A range reaching outside the data is clipped. Expect 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Layers",
+      "description": "Map layers and the per-pixel values behind them.",
+      "item": [
+        {
+          "name": "Layers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/layers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "layers"
+              ]
+            },
+            "description": "Map layers of an area: bounds, times, image paths, values link. Expect 200."
+          }
+        },
+        {
+          "name": "Layers (Jaisalmer, incl. Sentinel-2)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaisalmer/layers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaisalmer",
+                "layers"
+              ]
+            },
+            "description": "Jaisalmer also has three Sentinel-2 10 m image layers. Expect 200."
+          }
+        },
+        {
+          "name": "Layer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/layers/ndvi-peak",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "layers",
+                "ndvi-peak"
+              ]
+            },
+            "description": "One layer. Expect 200."
+          }
+        },
+        {
+          "name": "Layer values (one time)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/layers/ndvi-peak/values?time=2020",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "layers",
+                "ndvi-peak",
+                "values"
+              ],
+              "query": [
+                {
+                  "key": "time",
+                  "value": "2020"
+                }
+              ]
+            },
+            "description": "Stored integer grid for 2020; multiply by scale (0.001) for NDVI. Expect 200."
+          }
+        },
+        {
+          "name": "Layer values (all times)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/layers/ndvi-peak/values",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "layers",
+                "ndvi-peak",
+                "values"
+              ]
+            },
+            "description": "A timed layer without time returns every year: { \"2010\": grid, ... }. Expect 200."
+          }
+        },
+        {
+          "name": "Layer values (one time, checked format)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/udaipur/layers/ndvi-peak/values?time=2026",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "udaipur",
+                "layers",
+                "ndvi-peak",
+                "values"
+              ],
+              "query": [
+                {
+                  "key": "time",
+                  "value": "2026"
+                }
+              ]
+            },
+            "description": "time is written in the layer's interval (ndvi-peak: yearly, YYYY). Expect 200."
+          }
+        },
+        {
+          "name": "Layer values (static)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/layers/lst-day-summer/values",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "layers",
+                "lst-day-summer",
+                "values"
+              ]
+            },
+            "description": "Summer daytime land surface temperature grid; multiply by 0.1 for °C. Expect 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Basemap",
+      "description": "Satellite mosaics shown under the map.",
+      "item": [
+        {
+          "name": "Basemap",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/basemap",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "basemap"
+              ]
+            },
+            "description": "Bounds, zoom, image and label paths of every mosaic. Expect 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Errors",
+      "description": "Examples of every error code. Expected status is in each description.",
+      "item": [
+        {
+          "name": "Unknown area",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/atlantis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "atlantis"
+              ]
+            },
+            "description": "Expect 404 not_found."
+          }
+        },
+        {
+          "name": "Unknown parameter in query",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/timeseries?areas=jaipur&parameters=ndvi,bogus",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "areas",
+                  "value": "jaipur"
+                },
+                {
+                  "key": "parameters",
+                  "value": "ndvi,bogus"
+                }
+              ]
+            },
+            "description": "Expect 400 invalid_parameter (details.unknown, details.valid)."
+          }
+        },
+        {
+          "name": "Missing areas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/timeseries?parameters=ndvi",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "parameters",
+                  "value": "ndvi"
+                }
+              ]
+            },
+            "description": "areas is required on /timeseries. Expect 400 invalid_query."
+          }
+        },
+        {
+          "name": "Bad month",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/timeseries?from=2020-13",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2020-13"
+                }
+              ]
+            },
+            "description": "from must be YYYY-MM for monthly data. Expect 400 invalid_query."
+          }
+        },
+        {
+          "name": "from after to",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/timeseries?from=2021-01&to=2020-12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2021-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2020-12"
+                }
+              ]
+            },
+            "description": "Expect 400 invalid_query."
+          }
+        },
+        {
+          "name": "Unknown include",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas?include=forecast",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas"
+              ],
+              "query": [
+                {
+                  "key": "include",
+                  "value": "forecast"
+                }
+              ]
+            },
+            "description": "Expect 400 invalid_query (details.allowed)."
+          }
+        },
+        {
+          "name": "Unsupported interval",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/timeseries?areas=jaipur&interval=daily",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "areas",
+                  "value": "jaipur"
+                },
+                {
+                  "key": "interval",
+                  "value": "daily"
+                }
+              ]
+            },
+            "description": "Only monthly exists today. Expect 400 unsupported_interval (details.supported)."
+          }
+        },
+        {
+          "name": "Layer-only interval",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/timeseries?areas=jaipur&parameters=ndvi&interval=yearly",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "areas",
+                  "value": "jaipur"
+                },
+                {
+                  "key": "parameters",
+                  "value": "ndvi"
+                },
+                {
+                  "key": "interval",
+                  "value": "yearly"
+                }
+              ]
+            },
+            "description": "yearly describes layer times, it is not a timeseries interval. Expect 400 unsupported_interval (details.supported = [\"monthly\"])."
+          }
+        },
+        {
+          "name": "Parameter without the interval",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/timeseries?areas=jaipur&parameters=ndvi,rain&interval=monthly&from=2026-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "areas",
+                  "value": "jaipur"
+                },
+                {
+                  "key": "parameters",
+                  "value": "ndvi,rain"
+                },
+                {
+                  "key": "interval",
+                  "value": "monthly"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01"
+                }
+              ]
+            },
+            "description": "A parameter named in the list must offer the interval; otherwise 400 unsupported_interval with details { interval, parameter, supported } (with parameters=* such parameters are left out instead). Every parameter is monthly today, so this query only shows the shape. Expect 200."
+          }
+        },
+        {
+          "name": "Response too large",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/timeseries?areas=*&parameters=*",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "areas",
+                  "value": "*"
+                },
+                {
+                  "key": "parameters",
+                  "value": "*"
+                }
+              ]
+            },
+            "description": "areas x parameters x times above the limit (TIMESERIES_MAX_VALUES, default 500000) is 400 invalid_query with details.limit and details.requested. The full data is 6 x 16 x 201 = 19296 values, so this needs a server started with a small limit, e.g. TIMESERIES_MAX_VALUES=1000 npm start. Expect 400 invalid_query there, 200 with the default."
+          }
+        },
+        {
+          "name": "Unknown layer time",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/layers/ndvi-peak/values?time=1999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "layers",
+                "ndvi-peak",
+                "values"
+              ],
+              "query": [
+                {
+                  "key": "time",
+                  "value": "1999"
+                }
+              ]
+            },
+            "description": "Well formed (YYYY) but not in the layer's times. Expect 404 not_found (details.times)."
+          }
+        },
+        {
+          "name": "Malformed layer time",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/layers/ndvi-peak/values?time=2020-06",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "layers",
+                "ndvi-peak",
+                "values"
+              ],
+              "query": [
+                {
+                  "key": "time",
+                  "value": "2020-06"
+                }
+              ]
+            },
+            "description": "ndvi-peak is yearly, so a month is the wrong format. Expect 400 invalid_query (details.format = \"YYYY\")."
+          }
+        },
+        {
+          "name": "time on a static layer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/layers/ndvi-change/values?time=2020",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "layers",
+                "ndvi-change",
+                "values"
+              ],
+              "query": [
+                {
+                  "key": "time",
+                  "value": "2020"
+                }
+              ]
+            },
+            "description": "Static layers have one grid. Expect 400 invalid_query."
+          }
+        },
+        {
+          "name": "Layer without values",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaisalmer/layers/s2-ndvi/values",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaisalmer",
+                "layers",
+                "s2-ndvi",
+                "values"
+              ]
+            },
+            "description": "Sentinel-2 layers are images only. Expect 404 not_found."
+          }
+        },
+        {
+          "name": "Wrong method",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas"
+              ]
+            },
+            "description": "Only GET (and HEAD) are supported. Expect 405 method_not_allowed with an Allow header.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "Unknown route",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/nope",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nope"
+              ]
+            },
+            "description": "Expect 404 not_found. (The old unversioned /api/... endpoints are gone too.)"
+          }
+        }
+      ]
+    }
+  ]
+}

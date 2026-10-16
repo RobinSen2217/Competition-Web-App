@@ -32,8 +32,8 @@ export function createBaseMap(el) {
   // z: native zoom of a label sheet (labels are only legible near it).
   const base = [], labels = []
   const addMosaic = (meta, minZ) => {
-    base.push({ l: L.imageOverlay(asset(`/map/${meta.id}.jpg`), meta.bounds, { pane: 'base', interactive: false }), minZ })
-    if (meta.labels) labels.push({ l: L.imageOverlay(asset(`/map/${meta.id}_lab.png`), meta.bounds, { pane: 'labels', interactive: false }), z: meta.z })
+    base.push({ l: L.imageOverlay(asset(meta.image), meta.bounds, { pane: 'base', interactive: false }), minZ })
+    if (meta.labels) labels.push({ l: L.imageOverlay(asset(meta.labels), meta.bounds, { pane: 'labels', interactive: false }), z: meta.z })
   }
   addMosaic(MAPMETA.region[0], 0)
   addMosaic(MAPMETA.region[1], 7)

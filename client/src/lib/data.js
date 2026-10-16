@@ -1,27 +1,29 @@
 // Single entry point for the app's datasets.
 // - Loaded once at startup by initData(): climate series, district boundaries,
-//   mosaic metadata and raster metadata. They come from the Express API
-//   (/api/climate, /api/boundaries, /api/map/mosaics, /api/map/rasters) when it
-//   answers, otherwise from the copies bundled in src/data.
+//   mosaic metadata and raster metadata. They come from the Express API (v1:
+//   /timeseries, /areas, /basemap; requests and conversions live in lib/api.js)
+//   when it answers, otherwise from the copies bundled in src/data.
 // - Fetched later on demand: the map imagery (static files in public/map, URLs in
 //   MAPMETA and RAS) and the per-pixel values (loadPixelValues below).
+//
+// The exports keep the app's internal shapes (documented next to each one), not
+// the API's: lib/api.js converts the API resources into them, so components
+// never depend on the API format.
 //
 // RULE: data modules must not be imported before initData() has finished.
 // The exports below are live bindings (`export let`) that stay undefined until
 // initData() assigns them, and several modules read them at import time (e.g.
 // months.js builds YEARS from M). main.jsx therefore awaits initData() and only
 // then dynamically imports App.jsx, which pulls in everything else. This file
-// itself must only import modules that do not read the data (asset.js).
+// itself must only import modules that do not read the data (asset.js, api.js).
 import { asset } from './asset'
+import { API_BASE, fetchStartup, fetchPixelValues, toAreaLayers, toBoundaries, toClimate, toMosaics, toRasters, validStartup } from './api'
 
-// '' = same origin (/api, proxied to the Express server by Vite in dev).
-// In production set VITE_API_URL to the hosted API, e.g. https://api.example.com.
-// A trailing slash is dropped so `${API_BASE}/api/...` never has '//'.
-export const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
+export { API_BASE }
 
 // Whether to try the API at all. In dev the Vite proxy serves /api, so always
 // try. In a production build only when VITE_API_URL is set: until the API is
-// hosted, the live site skips four requests that would just 404.
+// hosted, the live site skips requests that would just 404.
 const USE_API = import.meta.env.DEV || !!API_BASE
 
 // How long startup waits for the API before using the bundled data instead.
@@ -29,8 +31,12 @@ const API_TIMEOUT_MS = 4000
 
 export let DATA // { months: ["2010-01", ...], cities: { id: { name, state, lat, lon, series: { key: [..] } } } }
 export let BOUND // { cityId: GeoJSON geometry of the district }
-export let MAPMETA // { region: [mosaic, mosaic], cityId: [z10, z13, z15 mosaics] }
+export let MAPMETA // { region: [mosaic, mosaic], cityId: [z10, z13, z15 mosaics] }, mosaic = { id, z, bounds, image, labels } (public paths; labels null = none)
 export let RAS // { cityId: { ndviBounds, lstBounds, years: {year: url}, change, lstDay, lstNight, values: url } }
+// API only ({} with bundled data): every layer the server lists per city,
+// { cityId: { layerId: { bounds, url, urlTemplate } } }. lib/map/layers.js uses
+// it for layers RAS has no slot for, with its own constants as fallback.
+export let AREA_LAYERS
 export let M // DATA.months
 export let N // M.length
 export let CITY_IDS // Object.keys(DATA.cities), in data order
@@ -39,43 +45,33 @@ export let DATA_SOURCE // 'api' | 'bundled'
 
 export const ser = (c, k) => DATA.cities[c].series[k]
 
-const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+// API only: { cityId: { years, change, lstDay, lstNight } } links to each
+// layer's /values resource, used by loadPixelValues.
+let valueLinks = {}
 
-// Fetches one JSON endpoint; any non-2xx status counts as a failure.
-async function getJson(path, signal) {
-  const res = await fetch(API_BASE + path, { signal, headers: { Accept: 'application/json' } })
-  if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`)
-  return res.json()
-}
-
-// Shape check of the four API payloads. Cheap, but enough to catch an HTML page
-// (e.g. a SPA rewrite answering /api/... with index.html), an empty object or a
-// half-deployed server, any of which would otherwise crash the components.
-function validApi({ climate, boundaries, mosaics, rasters }) {
-  if (!isObj(climate) || !Array.isArray(climate.months) || !climate.months.length) return false
-  if (!isObj(climate.cities) || !Object.keys(climate.cities).length) return false
-  if (!isObj(boundaries) || !isObj(mosaics) || !Array.isArray(mosaics.region)) return false
-  if (!isObj(rasters)) return false
-  return Object.entries(climate.cities).every(
-    ([id, c]) =>
-      isObj(c?.series) &&
-      boundaries[id] &&
-      (!rasters[id] || (isObj(rasters[id].years) && typeof rasters[id].pixels === 'string')),
-  )
-}
-
-// Loads all four datasets from the API in parallel. Resolves to null on any
-// failure (network error, timeout, bad status, invalid shape).
+// Loads the startup data from the API in parallel and converts it to the
+// internal shapes. Resolves to null on any failure (network error, timeout,
+// bad status, invalid shape).
 async function fromApi() {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), API_TIMEOUT_MS)
   try {
-    const [climate, boundaries, mosaics, rasters] = await Promise.all(
-      ['/api/climate', '/api/boundaries', '/api/map/mosaics', '/api/map/rasters'].map((p) => getJson(p, ctrl.signal)),
-    )
-    const d = { climate, boundaries, mosaics, rasters }
-    return validApi(d) ? d : null
-  } catch {
+    const d = validStartup(await fetchStartup(ctrl.signal))
+    if (!d) {
+      console.warn('[data] API response unusable (no time axis, region mosaics or valid city)')
+      return null
+    }
+    const { rasters, valueLinks: links } = toRasters(d.areas)
+    return {
+      climate: toClimate(d.timeseries, d.areas),
+      boundaries: toBoundaries(d.areas),
+      mosaics: toMosaics(d.basemap),
+      rasters,
+      valueLinks: links,
+      areaLayers: toAreaLayers(d.areas),
+    }
+  } catch (e) {
+    console.warn(`[data] API unavailable: ${e.message}`)
     return null
   } finally {
     clearTimeout(timer)
@@ -91,35 +87,48 @@ async function fromBundle() {
     import('../data/mapmeta.json'),
     import('../data/rasters.json'),
   ])
-  return { climate: climate.default, boundaries: boundaries.default, mosaics: mosaics.default, rasters: rasters.default }
+  return {
+    climate: climate.default,
+    boundaries: boundaries.default,
+    mosaics: resolveBundledMosaics(mosaics.default),
+    rasters: resolveBundledRasters(rasters.default),
+  }
 }
 
-// Raster JSON stores public paths ('/map/raster/...'); resolve the images against
-// the deploy base. The pixel values come from the API (`pixels`, an /api path)
-// or, for the bundled data, from a static values.json in public/ (`values`).
-// Either way components see one `values` URL.
-function resolveRasters(rasters, source) {
+// Bundled mapmeta.json stores only the mosaic id and a labels flag; fill in the
+// image paths by the same naming rule the server's files provider uses
+// (/map/<id>.jpg, /map/<id>_lab.png), so MAPMETA has the same shape and values
+// as lib/api.js toMosaics() builds from /basemap.
+function resolveBundledMosaics(mapmeta) {
   return Object.fromEntries(
-    Object.entries(rasters).map(([c, r]) => {
-      const { pixels, ...rest } = r
-      return [
-        c,
-        {
-          ...rest,
-          years: Object.fromEntries(Object.entries(r.years).map(([y, u]) => [y, asset(u)])),
-          change: asset(r.change),
-          lstDay: asset(r.lstDay),
-          lstNight: asset(r.lstNight),
-          values: source === 'api' ? API_BASE + pixels : asset(r.values),
-        },
-      ]
-    }),
+    Object.entries(mapmeta).map(([areaId, list]) => [
+      areaId,
+      list.map((m) => ({ id: m.id, z: m.z, bounds: m.bounds, image: `/map/${m.id}.jpg`, labels: m.labels ? `/map/${m.id}_lab.png` : null })),
+    ]),
+  )
+}
+
+// Bundled raster JSON stores public paths ('/map/raster/...'); resolve them
+// against the deploy base. (The API converter in lib/api.js already does this.)
+function resolveBundledRasters(rasters) {
+  return Object.fromEntries(
+    Object.entries(rasters).map(([c, r]) => [
+      c,
+      {
+        ...r,
+        years: Object.fromEntries(Object.entries(r.years).map(([y, u]) => [y, asset(u)])),
+        change: asset(r.change),
+        lstDay: asset(r.lstDay),
+        lstNight: asset(r.lstNight),
+        values: asset(r.values),
+      },
+    ]),
   )
 }
 
 // Loads the data (API first, bundled copy as fallback) and fills the exports.
-// Never mixes sources: if any API request fails, all four datasets come from
-// the bundle so the series, outlines and rasters always belong together.
+// Never mixes sources: if any API request fails, everything comes from the
+// bundle so the series, outlines and rasters always belong together.
 // Safe to call more than once; later calls return the first result.
 let initPromise
 export function initData() {
@@ -130,7 +139,9 @@ export function initData() {
     DATA = d.climate
     BOUND = d.boundaries
     MAPMETA = d.mosaics
-    RAS = resolveRasters(d.rasters, source)
+    RAS = d.rasters
+    AREA_LAYERS = d.areaLayers || {}
+    valueLinks = d.valueLinks || {}
     M = DATA.months
     N = M.length
     CITY_IDS = Object.keys(DATA.cities)
@@ -141,23 +152,27 @@ export function initData() {
   return initPromise
 }
 
+// The bundled per-city values.json (already in the internal shape).
+async function bundledPixelValues(url) {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 // Per-pixel values for the map's pixel inspector (~120 KB per city), fetched on demand.
 // Shape: { yearVals: {year: 41x41}, changeVals: 41x41, lstDayVals: 11x11, lstNightVals: 11x11 }
+// API: four /values requests in parallel (lib/api.js); bundled: one values.json.
 const pixelCache = new Map()
 export function loadPixelValues(c) {
   const r = RAS[c]
   if (!r) return Promise.resolve(null)
+  if (DATA_SOURCE === 'api' && !valueLinks[c]) return Promise.resolve(null)
   if (!pixelCache.has(c)) {
-    const p = fetch(r.values)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      })
-      .catch((e) => {
-        // Drop the failed promise so the next click retries
-        pixelCache.delete(c)
-        throw e
-      })
+    const p = (DATA_SOURCE === 'api' ? fetchPixelValues(valueLinks[c]) : bundledPixelValues(r.values)).catch((e) => {
+      // Drop the failed promise so the next click retries
+      pixelCache.delete(c)
+      throw e
+    })
     pixelCache.set(c, p)
   }
   return pixelCache.get(c)

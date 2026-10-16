@@ -1,0 +1,7 @@
+{
+  "jaisalmer": [
+    { "id": "s2-ndvi", "bounds": [[26.902729, 70.919915], [26.920817, 70.940063]], "interval": null, "times": null, "image": { "url": "/map/s2_ndvi.jpg" }, "values": null },
+    { "id": "s2-ndwi", "bounds": [[26.902729, 70.919915], [26.920817, 70.940063]], "interval": null, "times": null, "image": { "url": "/map/s2_ndwi.jpg" }, "values": null },
+    { "id": "s2-ndbi", "bounds": [[26.902729, 70.919915], [26.920817, 70.940063]], "interval": null, "times": null, "image": { "url": "/map/s2_ndbi.jpg" }, "values": null }
+  ]
+}

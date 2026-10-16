@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { AppContext } from './appContext'
 import { DATA, DEFAULT_CITY } from '../lib/data'
 import { store } from '../lib/storage'
@@ -37,9 +38,24 @@ export default function AppProvider({ children }) {
       {/* The live region is always in the document so screen readers announce
           the message when it appears; only the visible toast comes and goes. */}
       <div role="status" aria-live="polite">
-        {toastMsg != null && (
-          <div className="fixed bottom-6 left-1/2 z-[2000] -translate-x-1/2 rounded-full bg-ink px-[18px] py-2.5 text-[14px] text-page shadow-card">{toastMsg}</div>
-        )}
+        {/* Slides up and fades in, then back down on its way out. A new message
+            while one is showing just swaps the text in place (no key change),
+            so quick repeats don't stack or flicker. The centring uses the CSS
+            `translate` property (Tailwind v4) and the motion uses `transform`,
+            so the two don't overwrite each other. */}
+        <AnimatePresence>
+          {toastMsg != null && (
+            <motion.div
+              key="toast"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } }}
+              exit={{ opacity: 0, y: 12, transition: { duration: 0.2, ease: 'easeIn' } }}
+              className="fixed bottom-6 left-1/2 z-[2000] -translate-x-1/2 rounded-full bg-ink px-[18px] py-2.5 text-[14px] text-page shadow-card"
+            >
+              {toastMsg}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </AppContext.Provider>
   )

@@ -1,6 +1,26 @@
 @import "tailwindcss";
 
 /*
+  Palette tokens that change between the green and blue module themes,
+  registered as colours so they can be transitioned (see "Module themes" in the
+  base layer). inherits: true keeps them behaving like plain custom properties;
+  initial-value is the light green value, used only if a value were invalid.
+*/
+@property --bg { syntax: '<color>'; inherits: true; initial-value: #eef3ec; }
+@property --surface { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+@property --surface2 { syntax: '<color>'; inherits: true; initial-value: #f5f8f4; }
+@property --ink { syntax: '<color>'; inherits: true; initial-value: #1d3328; }
+@property --muted { syntax: '<color>'; inherits: true; initial-value: #566a5e; }
+@property --faint { syntax: '<color>'; inherits: true; initial-value: #8a9b90; }
+@property --line { syntax: '<color>'; inherits: true; initial-value: #dce5dd; }
+@property --accent { syntax: '<color>'; inherits: true; initial-value: #1f6b47; }
+@property --accent-soft { syntax: '<color>'; inherits: true; initial-value: #ddede2; }
+@property --on-accent { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+@property --s1 { syntax: '<color>'; inherits: true; initial-value: #2e7d4f; }
+@property --neutral-bg { syntax: '<color>'; inherits: true; initial-value: #ebefea; }
+@property --year { syntax: '<color>'; inherits: true; initial-value: #c9d3cb; }
+
+/*
   Design tokens for Vegetation of the City.
 
   The raw palette lives in CSS variables (--bg, --ink, --s1 ...) so it can swap
@@ -85,6 +105,58 @@
     --year: #2e3d34;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.25);
     color-scheme: dark;
+  }
+
+  /*
+    Module themes. The disaster module (/disaster/*) swaps the green palette for
+    a blue one: hooks/useModuleTheme.js sets <html data-module="disaster"> on
+    those pages and removes it elsewhere. Only the tokens that carry the green
+    hue change; status colours (good/warn/bad), coral and the other series
+    colours keep their meaning, and --shadow (not a colour) stays as it is.
+    Text keeps WCAG AA contrast: ink, muted and accent on bg/surface/surface2,
+    on-accent on accent, accent on accent-soft are all 4.5:1 or more, light and dark.
+
+    Selector weights: the light blue rule (2 classes' worth) comes after the green
+    dark rules so it beats them on order alone, and the dark blue rules add one
+    more attribute so they win over the light blue one.
+  */
+  :root[data-module="disaster"] {
+    --bg: #ecf1f7; --surface2: #f4f7fb; --ink: #1b2c3e; --muted: #52667c; --faint: #8696a9; --line: #d9e2ec;
+    --accent: #1d5f9f; --accent-soft: #dbe7f4; --on-accent: #ffffff;
+    --s1: #2b78ad; --neutral-bg: #e8edf3; --year: #c7d1dd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root[data-module="disaster"]:not([data-theme="light"]) {
+      --bg: #0e141c; --surface: #151d28; --surface2: #1a2431; --ink: #e1e9f2; --muted: #9eb0c5; --faint: #708398; --line: #283648;
+      --accent: #72b4ee; --accent-soft: #1b2d43; --on-accent: #0b1725;
+      --s1: #4f9bd4; --neutral-bg: #1e2733; --year: #2c3a4a;
+    }
+  }
+  :root[data-theme="dark"][data-module="disaster"] {
+    --bg: #0e141c; --surface: #151d28; --surface2: #1a2431; --ink: #e1e9f2; --muted: #9eb0c5; --faint: #708398; --line: #283648;
+    --accent: #72b4ee; --accent-soft: #1b2d43; --on-accent: #0b1725;
+    --s1: #4f9bd4; --neutral-bg: #1e2733; --year: #2c3a4a;
+  }
+
+  /*
+    The smooth green <-> blue fade (and light <-> dark). The tokens above are
+    registered with @property (top of this file) as <color>s, which makes them
+    animatable, so a transition on the tokens themselves fades every utility
+    that uses them (bg-surface, text-accent, borders, SVG fills ...) at once.
+
+    The transition sits on <body>, not :root, on purpose: :root switches to the
+    new values instantly, and body interpolates its own copy that everything on
+    the page inherits. lib/theme.js reads colours from :root (css('--accent'))
+    for charts and map layers, so they always get the final colour, never a
+    half-faded one that would stay baked into an SVG.
+
+    Under "reduce motion" the rule further down (transition: none on every
+    element, body included) makes the switch instant.
+  */
+  body {
+    transition-property: --bg, --surface, --surface2, --ink, --muted, --faint, --line, --accent, --accent-soft, --on-accent, --s1, --neutral-bg, --year;
+    transition-duration: 0.6s;
+    transition-timing-function: ease;
   }
 
   /* Page-wide element defaults (everything else is utilities in the components) */

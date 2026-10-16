@@ -1,86 +1,175 @@
-# Competition Web App API: every endpoint plus error examples.
+# Competition Web App API v1: every endpoint plus error examples.
 # Open in VS Code with the free "REST Client" extension (humao.rest-client)
 # and click "Send Request" above any request. Start the server first: npm run dev
-# (also works in JetBrains IDEs' built-in HTTP client).
+# (also works in JetBrains IDEs' built-in HTTP client). Reference: docs/API.md
 
 @baseUrl = http://localhost:5050
 
-# ==================== Meta ====================
+# ==================== Service ====================
 
 ### Health
-# Service status, data timestamp and counts. Expect 200. Never cached.
-GET {{baseUrl}}/api/health
+# Service status, versions and data timestamp. Expect 200. Never cached.
+GET {{baseUrl}}/api/v1/health
 
 ### Parameters
-# Label, unit, decimals, group and source of every series key. Expect 200.
-GET {{baseUrl}}/api/parameters
+# Label, unit, decimals, aggregation and intervals of every series key. Expect 200.
+GET {{baseUrl}}/api/v1/parameters
 
-# ==================== Cities ====================
+### Parameter
+# One parameter by key. Expect 200.
+GET {{baseUrl}}/api/v1/parameters/rain
 
-### List cities
-# All cities with name, state and coordinates. Expect 200.
-GET {{baseUrl}}/api/cities
+# ==================== Areas ====================
 
-### City details
-# One city with its parameter keys and month range. Expect 200.
-GET {{baseUrl}}/api/cities/jaipur
+### List areas
+# Every area with region, center and data coverage. Expect 200.
+GET {{baseUrl}}/api/v1/areas
 
-### Series (all)
-# Every parameter for every month. Expect 200.
-GET {{baseUrl}}/api/cities/jaipur/series
+### List cities with boundary and layers
+# type filter plus embedded extras (include=* gives all). Expect 200.
+GET {{baseUrl}}/api/v1/areas?type=city&include=boundary,layers
 
-### Series (filtered)
-# NDVI and rainfall from Jan 2015 to Dec 2020 (inclusive). Missing months are null. Expect 200.
-GET {{baseUrl}}/api/cities/jaipur/series?params=ndvi,rain&from=2015-01&to=2020-12
+### Area
+# One area. Expect 200.
+GET {{baseUrl}}/api/v1/areas/jaipur
+
+### Area with layers
+# One area with its map layers embedded. Expect 200.
+GET {{baseUrl}}/api/v1/areas/jaisalmer?include=layers
 
 ### Boundary
-# District outline as a GeoJSON geometry. Expect 200.
-GET {{baseUrl}}/api/cities/jaipur/boundary
+# District outline as a GeoJSON Feature. Expect 200.
+GET {{baseUrl}}/api/v1/areas/jaipur/boundary
 
-### Rasters
-# Raster bounds, image paths (static files on the website) and the pixels link. Expect 200.
-GET {{baseUrl}}/api/cities/jaipur/rasters
+# ==================== Timeseries ====================
 
-### Pixels
-# Per-pixel grids: NDVI x1000 per year (41x41), change (41x41), LST day/night x10 in °C (11x11). Expect 200.
-GET {{baseUrl}}/api/cities/jaipur/pixels
+### Timeseries (several areas)
+# NDVI and rainfall for two cities, Jan 2015 to Dec 2020 inclusive. Missing months are null. Expect 200.
+GET {{baseUrl}}/api/v1/timeseries?areas=jaipur,delhi&parameters=ndvi,rain&from=2015-01&to=2020-12&interval=monthly
 
-# ==================== Bulk (website startup) ====================
+### Timeseries (everything)
+# Every area and every parameter for the full range. Expect 200.
+GET {{baseUrl}}/api/v1/timeseries?areas=*&parameters=*
 
-### Climate (all cities)
-# Months plus every city with all its series. Expect 200.
-GET {{baseUrl}}/api/climate
+### Timeseries (every city)
+# type filters areas=* like on /areas (what the website loads at startup). Expect 200.
+GET {{baseUrl}}/api/v1/timeseries?areas=*&type=city&parameters=*&interval=monthly
 
-### Boundaries (all cities)
-# District outline per city id. Expect 200.
-GET {{baseUrl}}/api/boundaries
+### Timeseries (type with no areas)
+# No area has type custom yet, so data.areas is {}. Expect 200.
+GET {{baseUrl}}/api/v1/timeseries?areas=*&type=custom&parameters=ndvi&from=2026-01
 
-### Map mosaics
-# Bounds and zoom of every basemap mosaic. Expect 200.
-GET {{baseUrl}}/api/map/mosaics
+### Area timeseries
+# One area; parameters default to all. A range reaching outside the data is clipped. Expect 200.
+GET {{baseUrl}}/api/v1/areas/jaipur/timeseries?parameters=ndvi,rain&from=2024-01&to=2030-12
 
-### Map rasters (all cities)
-# Raster metadata per city id. Expect 200.
-GET {{baseUrl}}/api/map/rasters
+# ==================== Layers ====================
+
+### Layers
+# Map layers of an area: bounds, times, image paths, values link. Expect 200.
+GET {{baseUrl}}/api/v1/areas/jaipur/layers
+
+### Layers (Jaisalmer, incl. Sentinel-2)
+# Jaisalmer also has three Sentinel-2 10 m image layers. Expect 200.
+GET {{baseUrl}}/api/v1/areas/jaisalmer/layers
+
+### Layer
+# One layer. Expect 200.
+GET {{baseUrl}}/api/v1/areas/jaipur/layers/ndvi-peak
+
+### Layer values (one time)
+# Stored integer grid for 2020; multiply by scale (0.001) for NDVI. Expect 200.
+GET {{baseUrl}}/api/v1/areas/jaipur/layers/ndvi-peak/values?time=2020
+
+### Layer values (all times)
+# A timed layer without time returns every year: { "2010": grid, ... }. Expect 200.
+GET {{baseUrl}}/api/v1/areas/jaipur/layers/ndvi-peak/values
+
+### Layer values (one time, checked format)
+# time is written in the layer's interval (ndvi-peak: yearly, YYYY). Expect 200.
+GET {{baseUrl}}/api/v1/areas/udaipur/layers/ndvi-peak/values?time=2026
+
+### Layer values (static)
+# Summer daytime land surface temperature grid; multiply by 0.1 for °C. Expect 200.
+GET {{baseUrl}}/api/v1/areas/jaipur/layers/lst-day-summer/values
+
+# ==================== Basemap ====================
+
+### Basemap
+# Bounds, zoom, image and label paths of every mosaic. Expect 200.
+GET {{baseUrl}}/api/v1/basemap
 
 # ==================== Errors ====================
 
-### Unknown city
-# City id that does not exist. Expect 404.
-GET {{baseUrl}}/api/cities/atlantis
+### Unknown area
+# Expect 404 not_found.
+GET {{baseUrl}}/api/v1/areas/atlantis
 
-### Unknown parameter
-# A params key that does not exist. Expect 400.
-GET {{baseUrl}}/api/cities/jaipur/series?params=ndvi,bogus
+### Unknown parameter in query
+# Expect 400 invalid_parameter (details.unknown, details.valid).
+GET {{baseUrl}}/api/v1/timeseries?areas=jaipur&parameters=ndvi,bogus
 
-### Malformed month
-# Month 13 is not a valid YYYY-MM. Expect 400.
-GET {{baseUrl}}/api/cities/jaipur/series?from=2020-13
+### Missing areas
+# areas is required on /timeseries. Expect 400 invalid_query.
+GET {{baseUrl}}/api/v1/timeseries?parameters=ndvi
 
-### From after to
-# "from" later than "to". Expect 400.
-GET {{baseUrl}}/api/cities/jaipur/series?from=2021-01&to=2020-01
+### Bad month
+# from must be YYYY-MM for monthly data. Expect 400 invalid_query.
+GET {{baseUrl}}/api/v1/areas/jaipur/timeseries?from=2020-13
+
+### from after to
+# Expect 400 invalid_query.
+GET {{baseUrl}}/api/v1/areas/jaipur/timeseries?from=2021-01&to=2020-12
+
+### Unknown include
+# Expect 400 invalid_query (details.allowed).
+GET {{baseUrl}}/api/v1/areas?include=forecast
+
+### Unsupported interval
+# Only monthly exists today. Expect 400 unsupported_interval (details.supported).
+GET {{baseUrl}}/api/v1/timeseries?areas=jaipur&interval=daily
+
+### Layer-only interval
+# yearly describes layer times, it is not a timeseries interval. Expect 400 unsupported_interval (details.supported = ["monthly"]).
+GET {{baseUrl}}/api/v1/timeseries?areas=jaipur&parameters=ndvi&interval=yearly
+
+### Parameter without the interval
+# A parameter named in the list must offer the interval; otherwise 400
+# unsupported_interval with details { interval, parameter, supported } (with
+# parameters=* such parameters are left out instead). Every parameter is
+# monthly today, so this query only shows the shape. Expect 200.
+GET {{baseUrl}}/api/v1/timeseries?areas=jaipur&parameters=ndvi,rain&interval=monthly&from=2026-01
+
+### Response too large
+# areas x parameters x times above the limit (TIMESERIES_MAX_VALUES, default
+# 500000) is 400 invalid_query with details.limit and details.requested. The
+# full data is 6 x 16 x 201 = 19296 values, so this needs a server started with
+# a small limit, e.g. TIMESERIES_MAX_VALUES=1000 npm start. Expect 400 invalid_query there, 200 with the default.
+GET {{baseUrl}}/api/v1/timeseries?areas=*&parameters=*
+
+### Unknown layer time
+# Well formed (YYYY) but not in the layer's times. Expect 404 not_found (details.times).
+GET {{baseUrl}}/api/v1/areas/jaipur/layers/ndvi-peak/values?time=1999
+
+### Malformed layer time
+# ndvi-peak is yearly, so a month is the wrong format. Expect 400 invalid_query (details.format = "YYYY").
+GET {{baseUrl}}/api/v1/areas/jaipur/layers/ndvi-peak/values?time=2020-06
+
+### time on a static layer
+# Static layers have one grid. Expect 400 invalid_query.
+GET {{baseUrl}}/api/v1/areas/jaipur/layers/ndvi-change/values?time=2020
+
+### Layer without values
+# Sentinel-2 layers are images only. Expect 404 not_found.
+GET {{baseUrl}}/api/v1/areas/jaisalmer/layers/s2-ndvi/values
+
+### Wrong method
+# Only GET (and HEAD) are supported. Expect 405 method_not_allowed with an Allow header.
+POST {{baseUrl}}/api/v1/areas
+Content-Type: application/json
+
+{}
 
 ### Unknown route
-# No such endpoint. Expect 404.
-GET {{baseUrl}}/api/nope
+# Expect 404 not_found. (The old unversioned /api/... endpoints are gone too.)
+GET {{baseUrl}}/api/v1/nope

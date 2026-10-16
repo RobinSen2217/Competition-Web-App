@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { animate, useInView, useReducedMotion } from 'framer-motion'
 import { store } from '../../lib/storage'
 
 // Footer line "Visitors: 1,234".
@@ -53,9 +54,43 @@ export default function VisitorCounter() {
   }, [])
 
   if (count == null) return null
+  return <Count value={count} />
+}
+
+const fmt = (n) => n.toLocaleString('en-IN')
+
+// The number counts up from 0 the first time the footer line scrolls into view.
+// With reduced motion it shows the final value straight away.
+function Count({ value }) {
+  const ref = useRef(null)
+  const inView = useInView(ref, { once: true })
+  const still = useReducedMotion()
+  const [shown, setShown] = useState(0)
+
+  useEffect(() => {
+    if (still || !inView) return
+    const controls = animate(0, value, {
+      duration: 0.8,
+      ease: 'easeOut',
+      onUpdate: (v) => setShown(Math.round(v)),
+    })
+    return () => controls.stop()
+  }, [inView, still, value])
+
   return (
-    <span className="mt-2 block">
-      Visitors: <span className="font-mono tabular-nums text-ink">{count.toLocaleString('en-IN')}</span>
+    <span ref={ref} className="mt-2 block">
+      Visitors:{' '}
+      {/* Mono digits plus a width reserved for the final number, so the line
+          doesn't grow while counting. Screen readers get the final value only,
+          not every intermediate number. */}
+      <span
+        className="inline-block text-left font-mono tabular-nums text-ink"
+        style={{ minWidth: `${fmt(value).length}ch` }}
+        aria-hidden="true"
+      >
+        {fmt(still ? value : shown)}
+      </span>
+      <span className="sr-only">{fmt(value)}</span>
     </span>
   )
 }

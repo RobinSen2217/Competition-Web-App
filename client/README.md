@@ -5,10 +5,10 @@ React 19 + Vite 8 front end. One nav bar switches between two pages:
 | Path | Page |
 | --- | --- |
 | `/` | **Vegetation**: the satellite vegetation and climate explorer, ported from the single-file prototype (`vegetation-of-the-city/index.html`) |
-| `/disaster` | **Disaster**: empty for now (`src/pages/DisasterPage.jsx`) |
+| `/disaster/flood` | **Disaster → Flood**: placeholder page (`src/pages/FloodPage.jsx`); `/disaster` redirects here. More hazards: add a route in `App.jsx` and an entry in `HAZARDS` in `Nav.jsx` |
 
 Routing uses React Router (`src/App.jsx`). `vercel.json` rewrites every path
-except `/api/...` to `index.html`, so `/disaster` also works when opened directly.
+except `/api/...` to `index.html`, so `/disaster/flood` also works when opened directly.
 
 ## Run it
 
@@ -38,12 +38,15 @@ public/
                             lst-night.png, and values.json (bundled per-pixel numbers for the pixel
                             inspector, used only when the API is unavailable)
 src/
-  main.jsx                  entry; imports the CSS, awaits initData(), then loads App.jsx
-  App.jsx                   router: nav bar + the page for the current path
-  pages/                    VegetationPage (all its sections + footer), DisasterPage
+  main.jsx                  entry; starts initData() + the App.jsx import, renders Boot
+  Boot.jsx                  shows the animated Loader until the app is ready, then crossfades
+  App.jsx                   router: nav bar + the page for the current path, with page transitions
+  pages/                    VegetationPage (all its sections + footer), DisasterPage (layout), FloodPage
+  hooks/useModuleTheme.js   sets <html data-module="disaster"> on /disaster/* (blue theme)
   data/                     bundled fallback datasets (see "Data" below)
   lib/
     data.js                 the single access point for all data: loads it from the API (or the bundle)
+    api.js                  v1 API client: request helper, startup requests, v1 -> internal converters
     months.js params.js     month helpers, parameter definitions and number formatting
     stats.js                climatology, anomalies, OLS, correlation, baseline forecast
     chart.js                small SVG line-chart engine (used through components/common/Chart)
@@ -82,27 +85,58 @@ Styling is Tailwind CSS v4 utilities, written directly on the elements.
   (`css('--accent')`). Components that do this redraw when `useThemeVersion()`
   changes, so a dark/light switch recolours them live.
 
+
+### Motion and themes
+
+- Animations use **framer-motion** (`framer-motion` package, the same imports
+  hover.dev components use, so their code can be pasted in). The whole app sits
+  in `<MotionConfig reducedMotion="user">`, so devices set to reduce motion get
+  fades only.
+- Building blocks: `components/common/Reveal.jsx` (fade-up on first scroll into
+  view; `Card` and `PageSection` use it), `components/common/motionPresets.js`
+  (shared easing/variants), `components/common/Loader.jsx` (startup loader).
+  Animate only opacity/transform, never size: the map and charts measure their
+  containers.
+- **Module themes:** on `/disaster/*` the palette is blue. The overrides live in
+  `index.css` under `[data-module="disaster"]`; the colour tokens are registered
+  with `@property`, so switching fades smoothly (0.6 s). Charts and Leaflet read
+  colours from `:root`, which switches instantly, so they never bake half-faded
+  colours.
+
 ## Data
 
 The site loads its data from the Express API in `../server` at startup and
 falls back to bundled copies when the API cannot be reached.
 
 `src/lib/data.js` is the single access point. Before React renders, `main.jsx`
-awaits `initData()`, which fetches these four endpoints in parallel (4 s timeout):
+awaits `initData()`, which makes three requests to the v1 API in parallel (4 s timeout):
 
-| Endpoint | Bundled fallback | Contents |
+| Request | Bundled fallback | Becomes |
 | --- | --- | --- |
-| `/api/climate` | `src/data/climate.json` | `{ months: ["2010-01", ...], cities: { id: { name, state, lat, lon, series: { ndvi, rain, ... } } } }`, monthly values from Jan 2010 |
-| `/api/boundaries` | `src/data/boundaries.json` | district outline (GeoJSON geometry) for each city |
-| `/api/map/mosaics` | `src/data/mapmeta.json` | bounds and zoom of every basemap mosaic in `public/map` |
-| `/api/map/rasters` | `src/data/rasters.json` | raster bounds and image URLs per city, plus where its per-pixel values live |
+| `/api/v1/timeseries?areas=*&parameters=*&interval=monthly` | `src/data/climate.json` | `DATA`: `{ months: ["2010-01", ...], cities: { id: { name, state, lat, lon, series: { ndvi, rain, ... } } } }` (names and centres come from `/areas`) |
+| `/api/v1/areas?type=city&include=boundary,layers` | `src/data/boundaries.json`, `src/data/rasters.json` | `BOUND` (district outline per city) and `RAS` (raster bounds and image URLs per city, from each area's layers) |
+| `/api/v1/basemap` | `src/data/mapmeta.json` | `MAPMETA`: bounds and zoom of every basemap mosaic in `public/map`, grouped by area |
 
-If all four succeed and look valid, the API data is used; if any one fails, all
-four come from the bundle (sources are never mixed). The browser console logs
-which one is in use (`[data] using API ...` or `[data] using bundled data`).
-The per-pixel values for the map's pixel inspector are fetched on demand from
-`/api/cities/<id>/pixels` (API) or `public/map/raster/<id>/values.json` (bundled).
+If all three succeed and look valid, the API data is used; if any one fails,
+everything comes from the bundle (sources are never mixed). The browser console
+logs which one is in use (`[data] using API ...` or `[data] using bundled data`).
+The per-pixel values for the map's pixel inspector are fetched on demand: with
+the API, from the `/values` resource of the four MODIS layers
+(`/api/v1/areas/<id>/layers/<layerId>/values`, in parallel); with the bundle,
+from `public/map/raster/<id>/values.json`.
 Map images (`public/map/...`) are always static files served with the site.
+
+The API speaks in generic resources (areas, parameters, layers, time series; see
+`../server/docs/API.md`), while the components use the small city-based shapes
+above. `src/lib/api.js` holds everything API-specific: the request helper
+(`apiGet`/`apiData`, which unwraps the `{ data, meta }` envelope and turns the
+`{ error: { code, ... } }` envelope into an `ApiError`), the startup requests,
+and the converters from v1 resources to `DATA`, `BOUND`, `MAPMETA` and `RAS`.
+`RASTER_LAYERS` there maps the explorer's four MODIS layers to API layer ids.
+When the API changes (or new resources such as forecasts or hazards are used),
+only `api.js` needs to follow; components keep importing from `lib/data.js`.
+The Sentinel-2 layers for Jaisalmer are still defined client-side in
+`src/lib/map/layers.js`.
 
 Rule: nothing that reads the data may be imported before `initData()` finishes
 (for example `lib/months.js` computes the year range at import time). That is why
@@ -119,17 +153,20 @@ Rule: nothing that reads the data may be imported before `initData()` finishes
 Set it in Vercel under Project Settings > Environment Variables, or locally in
 `.env.local` (see `.env.example`). Give the base URL only, without `/api`. Vite
 bakes it in at build time, so redeploy after changing it. The server must allow
-the site's origin in its `CORS_ORIGINS`.
+the site's origin in its `CORS_ORIGINS`. The `/api/v1` prefix is added in
+`src/lib/api.js`.
 
 Until the API is hosted, production runs on the bundled data. Once it is live,
 the bundled copies (`src/data/climate.json`, `boundaries.json`, `mapmeta.json`,
 `rasters.json` and `public/map/raster/*/values.json`) can be removed together
 with the fallback in `lib/data.js`.
 
-To add a city, add it to the server's data files (and to the bundled copies while
-they exist): its series to `climate.json`, its outline to `boundaries.json`, its
-three mosaics to `mapmeta.json` and `public/map`, and its rasters under
-`public/map/raster/<city>/` with an entry in `rasters.json`.
+To add a city, add it to the server's data (see `../server/README.md`) and, while
+they exist, to the bundled copies: its series to `climate.json`, its outline to
+`boundaries.json`, its three mosaics to `mapmeta.json` and `public/map`, and its
+rasters under `public/map/raster/<city>/` with an entry in `rasters.json`. With
+the API, a new city appears in the site without client changes as long as it has
+a boundary and three mosaics (its map layers show when it has the four MODIS layers).
 
 ## Visitor counter
 

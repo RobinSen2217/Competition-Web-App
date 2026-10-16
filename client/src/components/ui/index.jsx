@@ -8,22 +8,39 @@
     also set a line-height; the page inherits 1.55 from <body>.
   - Controls that set their whole font (buttons, selects) also use
     leading-[normal], matching the CSS `font:` shorthand of the original design.
+
+  Motion (framer-motion): Card and the PageSection heading fade up the first
+  time they scroll into view (see common/Reveal.jsx), and Pill, SegButton and Btn
+  shrink slightly while pressed. Only opacity and transform are animated, so no
+  layout moves. The props API of every component is unchanged.
 */
 
+import { motion } from 'framer-motion'
 // Class-string helpers (cx, noteCls, rangeCls, selectCls) live in styles/classes.js.
 import { cx, noteCls, selectCls } from '../../styles/classes'
+import Reveal from '../common/Reveal'
+
+// Re-exported so sections can reveal their own blocks with the same motion.
+export { default as Reveal } from '../common/Reveal'
+
+// Press feedback shared by the buttons: a small, quick shrink while held.
+const TAP = { scale: 0.97 }
+const TAP_TRANSITION = { duration: 0.15, ease: 'easeOut' }
 
 /* ---- section cards ---- */
 
 // White rounded panel holding one section. `id`/aria props go on the <section>.
+// Fades up on first scroll into view. Safe for the map and chart cards: only
+// opacity/transform animate, so their measured width is right from the start.
 export function Card({ className, children, ...props }) {
   return (
-    <section
+    <Reveal
+      as="section"
       className={cx('flex min-w-0 scroll-mt-[72px] flex-col gap-[18px] rounded-[22px] bg-surface p-[clamp(18px,3vw,30px)] shadow-card', className)}
       {...props}
     >
       {children}
-    </section>
+    </Reveal>
   )
 }
 
@@ -111,8 +128,10 @@ export function Pills({ className, children, ...props }) {
 // The hover border is skipped when pressed so the accent border stays.
 export function Pill({ pressed = false, className, children, ...props }) {
   return (
-    <button
+    <motion.button
       type="button"
+      whileTap={TAP}
+      transition={TAP_TRANSITION}
       aria-pressed={pressed}
       className={cx(
         'inline-flex cursor-pointer items-center gap-[7px] rounded-full border-[1.5px] border-line bg-surface2 px-3 py-1.5 font-body text-[14px] leading-[normal] font-medium text-ink transition-[background,border-color] duration-150',
@@ -122,7 +141,7 @@ export function Pill({ pressed = false, className, children, ...props }) {
       {...props}
     >
       {children}
-    </button>
+    </motion.button>
   )
 }
 
@@ -141,8 +160,10 @@ export function Seg({ className, children, ...props }) {
 }
 export function SegButton({ pressed = false, className, children, ...props }) {
   return (
-    <button
+    <motion.button
       type="button"
+      whileTap={TAP}
+      transition={TAP_TRANSITION}
       aria-pressed={pressed}
       className={cx(
         'cursor-pointer rounded-full border-0 bg-transparent px-[13px] py-1.5 font-body text-[13.5px] leading-[normal] font-semibold text-muted',
@@ -152,15 +173,17 @@ export function SegButton({ pressed = false, className, children, ...props }) {
       {...props}
     >
       {children}
-    </button>
+    </motion.button>
   )
 }
 
 // Rounded action button; `soft` is the pale green variant.
 export function Btn({ soft = false, className, children, ...props }) {
   return (
-    <button
+    <motion.button
       type="button"
+      whileTap={TAP}
+      transition={TAP_TRANSITION}
       className={cx(
         'inline-flex cursor-pointer items-center gap-2 rounded-full border-0 px-4 py-[9px] font-body text-[14px] leading-[normal] font-semibold hover:brightness-[1.06]',
         soft ? 'bg-accent-soft text-accent' : 'bg-accent text-on-accent',
@@ -169,7 +192,7 @@ export function Btn({ soft = false, className, children, ...props }) {
       {...props}
     >
       {children}
-    </button>
+    </motion.button>
   )
 }
 
@@ -235,15 +258,17 @@ export function Note({ className, children, ...props }) {
 // One top-level part of a page (About, Data Analysis ...): a large heading with
 // a rule, then that part's cards. `id` names the heading for aria-labelledby;
 // in-page links point at the cards' own ids.
+// Only the heading row reveals here; the cards below reveal themselves, so
+// nothing fades twice (nested opacity would make cards appear late and dim).
 export function PageSection({ id, title, children }) {
   return (
     <section className="flex flex-col gap-7" aria-labelledby={id}>
-      <div className="flex items-center gap-4 pt-4">
+      <Reveal className="flex items-center gap-4 pt-4">
         <h2 id={id} className="text-[clamp(26px,3vw,34px)] whitespace-nowrap">
           {title}
         </h2>
         <span className="h-px flex-1 bg-line" aria-hidden="true" />
-      </div>
+      </Reveal>
       {children}
     </section>
   )

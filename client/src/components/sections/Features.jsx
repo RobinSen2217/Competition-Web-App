@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { DATA, ser } from '../../lib/data'
 import { MON, mLabel, mOf, yOf } from '../../lib/months'
 import { P, PARAMS, fmtv, unitS } from '../../lib/params'
@@ -7,6 +8,7 @@ import { css } from '../../lib/theme'
 import { useApp } from '../../state/appContext'
 import useThemeVersion from '../../hooks/useThemeVersion'
 import Sparkline from '../common/Sparkline'
+import { REVEAL_VIEWPORT, fadeUp, stagger } from '../common/motionPresets'
 import { Card, CardHead, Chip, Group, GroupTitle, Kicker, Lede } from '../ui'
 
 // "Data analysis" overview: one small card per measure for the selected city,
@@ -80,7 +82,7 @@ function analyse(c, k) {
 function ParamCard({ k, st, color }) {
   const p = P[k]
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 rounded-2xl bg-surface2 p-4">
+    <motion.div variants={fadeUp} className="flex min-w-0 flex-col gap-1.5 rounded-2xl bg-surface2 p-4">
       <span className="text-[14px] font-semibold text-muted">{p.label}</span>
       {st.empty ? (
         <span className="text-[17px] font-semibold text-muted">No data</span>
@@ -116,7 +118,7 @@ function ParamCard({ k, st, color }) {
         </>
       )}
       <span className="text-[12.5px] text-muted">{p.src}</span>
-    </div>
+    </motion.div>
   )
 }
 
@@ -141,12 +143,21 @@ export default function Features() {
       {GROUPS.map((g) => (
         <Group key={g.name} role="group" aria-label={g.name}>
           <GroupTitle>{g.name}</GroupTitle>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,160px),1fr))] gap-3">
+          {/* The cards of a group fade up one after another (35 ms apart) when
+              the grid first scrolls into view; each card takes its timing
+              from the grid through the shared variants. */}
+          <motion.div
+            className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,160px),1fr))] gap-3"
+            initial="hidden"
+            whileInView="shown"
+            viewport={REVEAL_VIEWPORT}
+            variants={stagger}
+          >
             {PARAMS.filter((p) => p.grp === g.name).map((p) => (
               <ParamCard key={p.k} k={p.k} st={stats[p.k]} color={g.color} />
             ))}
             {g.name === 'Water' && (
-              <div className="flex min-w-0 flex-col gap-1.5 rounded-2xl bg-surface2 p-4">
+              <motion.div variants={fadeUp} className="flex min-w-0 flex-col gap-1.5 rounded-2xl bg-surface2 p-4">
                 <span className="text-[14px] font-semibold text-muted">Water index (NDWI)</span>
                 <span className="text-[17px] font-semibold text-muted">No series yet</span>
                 <p className="text-[13px] text-muted">
@@ -157,9 +168,9 @@ export default function Features() {
                   Open the map
                 </a>
                 <span className="text-[12.5px] text-muted">Sentinel-2</span>
-              </div>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
         </Group>
       ))}
     </Card>
