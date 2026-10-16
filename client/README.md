@@ -32,6 +32,7 @@ see [Data](#data).
 ```
 public/
   favicon.svg
+  logos/                    partner logos (MNIT Jaipur, St. Stephen's College), set in src/data/contact.js
   map/                      satellite mosaics (<id>.jpg) and place-name overlays (<id>_lab.png)
   map/s2_*.jpg              Sentinel-2 10 m layers (Jaisalmer only)
   map/raster/<city>/        per-city MODIS rasters: ndvi-<year>.png, change.png, lst-day.png,
@@ -59,7 +60,7 @@ src/
     ui/                     shared Tailwind building blocks: Card, CardHead, Kicker, Lede, Chip, Pill,
                             Seg, Btn, Select, Toggle, Readout, Note ...
     common/                 Chart, Sparkline
-    layout/                 Nav (logo + page tabs), Footer (vegetation page)
+    layout/                 Nav (app name, partner logos, page tabs), Footer (vegetation page)
     sections/               Hero, Glance, PlotBuilder, Why, Outlook, Compare, Intro, Science,
                             Methods, Sources, Faq
     map/                    MapExplorer and its rail, planner and hooks
