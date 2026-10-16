@@ -30,7 +30,7 @@ Copy `.env.example` to `.env` (not committed) and adjust:
 | `PORT` | `5050` | Port to listen on |
 | `CORS_ORIGINS` | unset = any origin (`*`) | Comma-separated origins allowed to call the API from a browser, e.g. `http://localhost:5173,https://your-site.vercel.app` |
 
-**Why 5050 and not 5000:** on macOS the AirPlay Receiver listens on port 5000, and requests to `localhost:5000` reach it instead (an empty `403` from `AirTunes`). If you change `PORT`, also change the proxy in `client/vite.config.js` and `baseUrl` in the Thunder Client collection. The server checks at startup that it really answers on its port and prints a warning if not.
+**Why 5050 and not 5000:** on macOS the AirPlay Receiver listens on port 5000, and requests to `localhost:5000` reach it instead (an empty `403` from `AirTunes`). If you change `PORT`, also change the proxy in `client/vite.config.js` and `@baseUrl` in `api.http` (and `baseUrl` in the Postman collection). The server checks at startup that it really answers on its port and prints a warning if not.
 
 ## Layout
 
@@ -45,7 +45,8 @@ src/routes/
   map.js            /api/boundaries, /api/map/mosaics, /api/map/rasters
 data/               the data files (see "Data files")
 test/               node:test suites (npm test)
-thunder/            Postman v2.1 collection for Thunder Client
+api.http            every request, for the VS Code REST Client extension
+thunder/            Postman v2.1 collection (Postman, Bruno, Insomnia)
 ```
 
 ## Endpoints
@@ -190,20 +191,25 @@ Every error has the matching HTTP status and this body:
 | `404` | unknown city, unknown route (including anything not under `/api`, and non-GET methods) |
 | `500` | a bug; the message is generic and the details go to the server log |
 
-## Testing in Thunder Client
+## Testing the API by hand
 
-`thunder/competition-web-app.postman_collection.json` is a Postman v2.1
-collection with one request per endpoint plus example errors, grouped into
-Meta, Cities, Bulk and Errors folders. Each request's description says the
-status to expect.
+Start the server first (`npm run dev`). Then use any of these; all are free.
 
-1. Start the server (`npm run dev`).
-2. In VS Code open the Thunder Client sidebar, go to **Collections**, open the
-   menu (the "≡" icon) and choose **Import**, then pick the collection file
-   (choose the Postman format if asked).
-3. Requests use the collection variable `{{baseUrl}}`, which defaults to
-   `http://localhost:5050`. Change it in the collection's settings if the server
-   runs elsewhere (another `PORT`, or a deployed URL).
+**VS Code: REST Client extension (recommended).** Install "REST Client"
+(publisher Huachao Mao, id `humao.rest-client`), open `api.http` and click
+**Send Request** above any request. The file has every endpoint plus example
+errors, each with the status to expect. `@baseUrl` at the top sets the server
+address (change it for another `PORT` or a deployed URL). JetBrains IDEs run the
+same file with their built-in HTTP client.
+
+**A browser.** Every endpoint is a GET, so you can open e.g.
+http://localhost:5050/api/cities/jaipur/series?params=ndvi&from=2024-01 directly.
+
+**Postman, Bruno or Insomnia.** `thunder/competition-web-app.postman_collection.json`
+is a Postman v2.1 collection (Meta, Cities, Bulk and Errors folders) that these
+apps import for free. Requests use the `{{baseUrl}}` variable, default
+`http://localhost:5050`. Thunder Client can import it too, but importing
+collections needs a paid Thunder Client plan.
 
 ## Data files
 

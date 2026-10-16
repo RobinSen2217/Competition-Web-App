@@ -1,0 +1,86 @@
+# Competition Web App API: every endpoint plus error examples.
+# Open in VS Code with the free "REST Client" extension (humao.rest-client)
+# and click "Send Request" above any request. Start the server first: npm run dev
+# (also works in JetBrains IDEs' built-in HTTP client).
+
+@baseUrl = http://localhost:5050
+
+# ==================== Meta ====================
+
+### Health
+# Service status, data timestamp and counts. Expect 200. Never cached.
+GET {{baseUrl}}/api/health
+
+### Parameters
+# Label, unit, decimals, group and source of every series key. Expect 200.
+GET {{baseUrl}}/api/parameters
+
+# ==================== Cities ====================
+
+### List cities
+# All cities with name, state and coordinates. Expect 200.
+GET {{baseUrl}}/api/cities
+
+### City details
+# One city with its parameter keys and month range. Expect 200.
+GET {{baseUrl}}/api/cities/jaipur
+
+### Series (all)
+# Every parameter for every month. Expect 200.
+GET {{baseUrl}}/api/cities/jaipur/series
+
+### Series (filtered)
+# NDVI and rainfall from Jan 2015 to Dec 2020 (inclusive). Missing months are null. Expect 200.
+GET {{baseUrl}}/api/cities/jaipur/series?params=ndvi,rain&from=2015-01&to=2020-12
+
+### Boundary
+# District outline as a GeoJSON geometry. Expect 200.
+GET {{baseUrl}}/api/cities/jaipur/boundary
+
+### Rasters
+# Raster bounds, image paths (static files on the website) and the pixels link. Expect 200.
+GET {{baseUrl}}/api/cities/jaipur/rasters
+
+### Pixels
+# Per-pixel grids: NDVI x1000 per year (41x41), change (41x41), LST day/night x10 in °C (11x11). Expect 200.
+GET {{baseUrl}}/api/cities/jaipur/pixels
+
+# ==================== Bulk (website startup) ====================
+
+### Climate (all cities)
+# Months plus every city with all its series. Expect 200.
+GET {{baseUrl}}/api/climate
+
+### Boundaries (all cities)
+# District outline per city id. Expect 200.
+GET {{baseUrl}}/api/boundaries
+
+### Map mosaics
+# Bounds and zoom of every basemap mosaic. Expect 200.
+GET {{baseUrl}}/api/map/mosaics
+
+### Map rasters (all cities)
+# Raster metadata per city id. Expect 200.
+GET {{baseUrl}}/api/map/rasters
+
+# ==================== Errors ====================
+
+### Unknown city
+# City id that does not exist. Expect 404.
+GET {{baseUrl}}/api/cities/atlantis
+
+### Unknown parameter
+# A params key that does not exist. Expect 400.
+GET {{baseUrl}}/api/cities/jaipur/series?params=ndvi,bogus
+
+### Malformed month
+# Month 13 is not a valid YYYY-MM. Expect 400.
+GET {{baseUrl}}/api/cities/jaipur/series?from=2020-13
+
+### From after to
+# "from" later than "to". Expect 400.
+GET {{baseUrl}}/api/cities/jaipur/series?from=2021-01&to=2020-01
+
+### Unknown route
+# No such endpoint. Expect 404.
+GET {{baseUrl}}/api/nope
