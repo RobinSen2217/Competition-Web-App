@@ -24,6 +24,25 @@ import json
 import os
 from pathlib import Path
 
+
+def use_certifi_bundle(env=None):
+    """Point Python's HTTPS at certifi's CA list unless SSL_CERT_FILE is set.
+
+    The python.org macOS installer ships without trusted root certificates
+    (until its "Install Certificates" script is run), which makes Earth Engine
+    sign-in and requests fail with CERTIFICATE_VERIFY_FAILED. certifi is
+    installed with earthengine-api's dependencies, so this works everywhere.
+    """
+    env = os.environ if env is None else env
+    if env.get('SSL_CERT_FILE'):
+        return env['SSL_CERT_FILE']
+    try:
+        import certifi
+    except ImportError:  # pragma: no cover - certifi comes with requests
+        return None
+    env['SSL_CERT_FILE'] = certifi.where()
+    return env['SSL_CERT_FILE']
+
 from .areas import SERVER_DIR
 
 DEFAULT_PROJECT = 'miicproject2'
@@ -104,6 +123,7 @@ def initialize(env=None, ee_module=None):
     `ee_module` is for tests; normally the real earthengine-api is used.
     """
     if ee_module is None:
+        use_certifi_bundle()
         import ee as ee_module  # imported here so the rest of the package loads without it
     project, key = settings(env)
     if key:
