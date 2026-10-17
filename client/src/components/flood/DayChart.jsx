@@ -24,7 +24,7 @@ import { dateLabel, dayStr, niceStep } from './format'
     { type: 'rug', ranges, color }                                  a thin strip along the bottom
     { type: 'bars', color, pts: [{ x: day, y }] }                    one bar per day
     { type: 'line', color, pts: [{ x, y }], width?, dash?, opacity?, dots? }  null y breaks the line
-    { type: 'points', color, pts: [{ x, y, lo?, hi?, color? }], hollow? }     markers, optional whiskers lo..hi
+    { type: 'points', color, pts: [{ x, y, lo?, hi?, color?, opacity? }], hollow? }  markers, optional whiskers lo..hi
     { type: 'hline', y, color, dash?, label? }                       horizontal reference line
 
   hover / onHover: the hovered day (integer) or null, shared between charts.
@@ -193,7 +193,7 @@ function Plot({ W, H, x0, x1, layers, ys, yMin, yMax, zero, yFmt, aria, hover, o
                 const c = v(p.color || L.color)
                 const cx = X(p.x)
                 return (
-                  <g key={i}>
+                  <g key={i} opacity={p.opacity ?? 1}>
                     {p.lo != null && p.hi != null && (
                       <g style={{ stroke: c }} strokeWidth={1.5}>
                         <line x1={cx} x2={cx} y1={Y(p.lo)} y2={Y(p.hi)} />

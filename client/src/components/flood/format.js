@@ -105,6 +105,13 @@ export const isNumeric = (p) => p.valueType === 'number' || p.valueType === 'int
 export const uncertaintyFor = (p, params) =>
   params.find((q) => q.key !== p.key && q.kind === p.kind && q.group === p.group && q.unit === p.unit && /uncertaint/i.test(`${q.key} ${q.label}`)) || null
 
+// The "how much of the area" partner of an observation parameter: another one
+// of the same group measured in % whose name says coverage (e.g. soil moisture
+// and the share of the box each pass covered). Matched by name, like
+// uncertaintyFor, since the API has no explicit link.
+export const coverageFor = (p, params) =>
+  params.find((q) => q.key !== p.key && q.kind === p.kind && q.group === p.group && q.unit === '%' && p.unit !== '%' && /coverage/i.test(`${q.key} ${q.label}`)) || null
+
 // Short label of a dataset: "GPM IMERG Late Run, daily, V07 (...)" -> "GPM IMERG Late Run"
 export const datasetShort = (d) => (d?.name || d?.id || '').split(/[,(]/)[0].trim()
 

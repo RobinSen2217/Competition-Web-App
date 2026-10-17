@@ -1,13 +1,20 @@
 // Placeholder heights of the flood page's lazy sections: each card's real
 // height by viewport width, [[width, height], ...], interpolated between the
 // points (LazySection -> lib/sectionHeights.js heightAt). Measured in Chrome
-// with the default event selected (scripts in the harness, see the client
-// README), so the page keeps its final length while sections mount and an
-// #anchor jump lands in the right place. Re-measure after changing a
-// section's layout; a few dozen px off only means a small shift on arrival.
+// with the default event selected (Guangxi, so the map card includes its
+// water-layer panel), so the page keeps its final length while sections
+// mount and an #anchor jump lands in the right place.
+//
+// How: every section mounted and loaded, then the window resized from 320 to
+// 1440px in 10px steps (plus each breakpoint +-1px); the points kept are the
+// fewest whose interpolation stays within 12px of every measurement, as in
+// lib/sectionHeights.js. Another event changes the map card (no layer panel:
+// ~350px shorter on wide screens) and the charts, but the placeholders only
+// matter before the first load, when the default event is shown. Re-measure
+// after changing a section's layout.
 export const FLOOD_HEIGHTS = {
-  map: [[320, 1300], [390, 1264], [900, 1100], [901, 634], [1280, 634]],
-  parameters: [[320, 1640], [390, 1601], [1280, 1087]],
-  forecast: [[320, 2700], [390, 2592], [1280, 1461]],
-  method: [[320, 4200], [390, 3921], [1280, 1842]],
+  map: [[320, 2407], [330, 2290], [340, 2247], [370, 2034], [380, 2034], [390, 1969], [410, 1949], [420, 1919], [421, 1894], [464, 1801], [465, 1780], [482, 1740], [510, 1722], [522, 1697], [530, 1638], [550, 1620], [559, 1620], [560, 1548], [580, 1528], [599, 1528], [600, 1628], [680, 1555], [701, 1557], [720, 1519], [780, 1500], [800, 1479], [899, 1467], [900, 1575], [901, 1053], [1020, 1061], [1025, 1042], [1040, 1042], [1050, 996], [1250, 978], [1440, 978]],
+  parameters: [[320, 1773], [350, 1674], [380, 1674], [390, 1648], [410, 1648], [420, 1597], [421, 1569], [430, 1569], [440, 1510], [465, 1490], [490, 1490], [530, 1418], [541, 1372], [561, 1372], [570, 1303], [601, 1275], [630, 1277], [641, 1240], [670, 1242], [680, 1217], [699, 1218], [700, 1188], [780, 1168], [800, 1149], [850, 1152], [860, 1123], [1023, 1134], [1024, 1109], [1090, 1085], [1440, 1087]],
+  forecast: [[320, 3265], [330, 2944], [340, 2944], [350, 2839], [360, 2695], [370, 2695], [390, 2592], [400, 2592], [419, 2526], [421, 2506], [440, 2404], [450, 2339], [480, 2319], [481, 2294], [490, 2294], [522, 2165], [540, 2145], [541, 2120], [550, 2045], [580, 2023], [590, 1983], [610, 1984], [630, 1869], [641, 1850], [650, 1810], [740, 1815], [762, 1796], [767, 1796], [768, 1698], [810, 1679], [820, 1660], [830, 1699], [960, 1653], [980, 1636], [1040, 1639], [1060, 1618], [1080, 1489], [1250, 1461], [1440, 1461]],
+  method: [[320, 5057], [330, 4800], [360, 4311], [370, 4102], [380, 4060], [400, 3794], [420, 3752], [421, 3685], [430, 3685], [450, 3578], [464, 3463], [470, 3442], [481, 3333], [490, 3290], [500, 3268], [520, 3158], [541, 3116], [559, 3011], [601, 2898], [620, 2899], [640, 2793], [670, 2795], [699, 2735], [700, 2660], [710, 2660], [730, 2552], [750, 2553], [761, 2532], [762, 2511], [767, 2511], [768, 2423], [780, 2357], [820, 2316], [848, 2233], [870, 2213], [890, 2192], [902, 2193], [920, 2151], [940, 2131], [950, 2091], [990, 2052], [1025, 1989], [1060, 1947], [1100, 1904], [1120, 1860], [1270, 1842], [1440, 1842]],
 }

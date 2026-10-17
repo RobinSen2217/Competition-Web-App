@@ -6,7 +6,7 @@ import { cx } from '../../styles/classes'
 import { useHazardPage } from './context'
 import { Key, StaleChip } from './bits'
 import DayChart from './DayChart'
-import { dateLabel, dayNum, dayStr, fmtValue, isNumeric, listJoin, plural, rangeLabel, runsOf, seriesColor, uncertaintyFor, CARD_SCROLL } from './format'
+import { coverageFor, dateLabel, dayNum, dayStr, fmtValue, isNumeric, listJoin, plural, rangeLabel, runsOf, seriesColor, uncertaintyFor, CARD_SCROLL } from './format'
 
 /*
   "What was measured" (#parameters): the selected event's data, day by day.
@@ -221,11 +221,24 @@ function Body({ params, ts, event, labelParameter }) {
   // keeps its whiskers at 0: a large uncertainty must not draw an impossible
   // negative value and stretch the axis below zero.
   const nonNeg = !!obs && obs.values.every((y) => y == null || y >= 0)
+  // How much of the area each pass covered (when the hazard records it): a
+  // pass that saw a sliver of the box is a weaker average, so its point is
+  // drawn fainter (0.3 at 0%, solid at 100%); the readout gives the number.
+  const covP = op ? coverageFor(op, obsParams) : null
+  const cov = covP && ts.observations[covP.key]?.times?.join() === obs.times.join() ? ts.observations[covP.key].values : null
   const pts = obs
     ? obs.values.map((y, i) => {
         const u = unc?.values?.[i]
         const lo = u != null && y != null ? y - u : null
-        return { x: xs[i], y, lo: lo != null && nonNeg ? Math.max(0, lo) : lo, hi: u != null && y != null ? y + u : null, color: catColor(i) }
+        const c = cov?.[i]
+        return {
+          x: xs[i],
+          y,
+          lo: lo != null && nonNeg ? Math.max(0, lo) : lo,
+          hi: u != null && y != null ? y + u : null,
+          color: catColor(i),
+          opacity: Number.isFinite(c) ? 0.3 + 0.7 * Math.min(1, Math.max(0, c / 100)) : undefined,
+        }
       })
     : []
   // Other observations recorded on the same rows (same passes) in another
@@ -415,6 +428,11 @@ function Body({ params, ts, event, labelParameter }) {
                 ))
               : <Key swatch={<span className="size-[10px] rounded-full bg-s1" />}>{op.label}</Key>}
             {unc && <Key swatch={<span className="h-3 w-[9px] border-y-[1.5px] border-muted bg-[linear-gradient(var(--muted),var(--muted))] bg-[length:1.5px_100%] bg-center bg-no-repeat" />}>± {partner.label.toLowerCase()}</Key>}
+            {cov && (
+              <Key swatch={<span className="flex gap-[3px]"><span className="size-[10px] rounded-full bg-s1 opacity-30" /><span className="size-[10px] rounded-full bg-s1" /></span>}>
+                Fainter = less of the box covered ({covP.label.toLowerCase()}, 0–100%)
+              </Key>
+            )}
             {shades.map((s) => (
               <Key key={s.p.key} swatch={<span className="h-3 w-5 rounded-[3px] bg-accent opacity-40" />}>
                 {s.p.label}
