@@ -93,6 +93,29 @@ GET {{baseUrl}}/api/v1/areas/udaipur/layers/ndvi-peak/values?time=2026
 # Summer daytime land surface temperature grid; multiply by 0.1 for °C. Expect 200.
 GET {{baseUrl}}/api/v1/areas/jaipur/layers/lst-day-summer/values
 
+# ==================== Forecasts ====================
+
+### Forecast (defaults)
+# NDVI, 12 months, every model (ridge, nn, gbm), computed from the area's
+# Earth Engine table (data/gee/jaipur.features.csv, the team notebook's
+# pipeline). The first request per area takes a few seconds while the models
+# train; repeats come from the cache. data.source is "live", or "snapshot"
+# when the Python module cannot run. Expect 200 once the area has been
+# extracted (npm run gee:extract); before that 503 forecast_unavailable with
+# details.reason "no_gee_data".
+GET {{baseUrl}}/api/v1/areas/jaipur/forecasts
+
+### Forecast (explicit query)
+# Same question written out: one parameter, horizon in months (1-24), models
+# list. Jaisalmer is the notebook's own area. Expect 200 (503 no_gee_data
+# until extracted).
+GET {{baseUrl}}/api/v1/areas/jaisalmer/forecasts?parameters=ndvi&horizon=12&models=ridge,nn,gbm&interval=monthly
+
+### Forecast (one model, 6 months)
+# Models always come back in the order ridge, nn, gbm. Expect 200 (503
+# no_gee_data until extracted).
+GET {{baseUrl}}/api/v1/areas/delhi/forecasts?horizon=6&models=gbm
+
 # ==================== Basemap ====================
 
 ### Basemap
@@ -162,6 +185,52 @@ GET {{baseUrl}}/api/v1/areas/jaipur/layers/ndvi-change/values?time=2020
 ### Layer without values
 # Sentinel-2 layers are images only. Expect 404 not_found.
 GET {{baseUrl}}/api/v1/areas/jaisalmer/layers/s2-ndvi/values
+
+### Forecast: unknown area
+# Expect 404 not_found.
+GET {{baseUrl}}/api/v1/areas/atlantis/forecasts
+
+### Forecast: parameter that cannot be forecast
+# rain exists but has no forecast model. Expect 400 invalid_parameter (details.unforecastable, details.valid = ["ndvi"]).
+GET {{baseUrl}}/api/v1/areas/jaipur/forecasts?parameters=rain
+
+### Forecast: more than one parameter
+# One parameter per request. Expect 400 invalid_query.
+GET {{baseUrl}}/api/v1/areas/jaipur/forecasts?parameters=ndvi,lst_day
+
+### Forecast: horizon out of range
+# horizon is a whole number from 1 to 24. Expect 400 invalid_query (details.min, details.max).
+GET {{baseUrl}}/api/v1/areas/jaipur/forecasts?horizon=36
+
+### Forecast: unknown model
+# Expect 400 invalid_query (details.unknown, details.allowed = ["ridge", "nn", "gbm"]).
+GET {{baseUrl}}/api/v1/areas/jaipur/forecasts?models=ridge,xgboost
+
+### Forecast: unsupported interval
+# Forecasts are monthly only. Expect 400 unsupported_interval (details.supported = ["monthly"]).
+GET {{baseUrl}}/api/v1/areas/jaipur/forecasts?interval=yearly
+
+### Forecast: data not extracted yet
+# An area whose Earth Engine table (data/gee/<id>.features.csv) has not been
+# extracted yet. Expect 503 forecast_unavailable with details.reason
+# "no_gee_data" and a message saying so (200 once npm run gee:extract has run
+# for it).
+GET {{baseUrl}}/api/v1/areas/bikaner/forecasts
+
+### Forecast: model not available
+# Needs an area with an extracted table and a server that cannot run Python:
+# FORECAST_MODE=snapshot npm start (or FORECAST_PYTHON=/nonexistent). Expect
+# 503 forecast_unavailable (details.saved) when no saved forecast covers 18
+# months; with one from npm run forecasts:build (24 months) 200 with
+# data.source "snapshot"; 200 live with the module installed in live mode.
+GET {{baseUrl}}/api/v1/areas/jaipur/forecasts?horizon=18
+
+### Forecast: model failure
+# Needs an area with an extracted table and a module that fails:
+# FORECAST_PYTHON=/usr/bin/false npm start. Without a saved forecast expect
+# 502 model_failure; with one, 200 with data.source "snapshot" and
+# meta.fallback "model_failure". 200 live with a working module.
+GET {{baseUrl}}/api/v1/areas/jaipur/forecasts?horizon=18
 
 ### Wrong method
 # Only GET (and HEAD) are supported. Expect 405 method_not_allowed with an Allow header.

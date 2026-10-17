@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "forecasts:build": "node scripts/build-forecasts.js",
+    "gee:check": "node scripts/gee.js check",
+    "gee:extract": "node scripts/gee.js extract --all"
   },
   "keywords": [],
   "author": "",
@@ -21,5 +24,12 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "data/forecasts/**",
+      "data/gee/**",
+      "ml/**"
+    ]
   }
 }

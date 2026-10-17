@@ -7,6 +7,9 @@ dist/
 .env.*
 !.env.example
 
+# Earth Engine service-account keys (GEE_SERVICE_ACCOUNT_KEY). Never commit a key.
+server/secrets/
+
 # Logs
 *.log
 
@@ -16,3 +19,7 @@ dist/
 !.vscode/extensions.json
 .idea/
 .claude/
+
+# Python virtual environment for the forecasting black box (rebuild with server/ml/requirements.txt)
+server/ml/.venv/
+__pycache__/

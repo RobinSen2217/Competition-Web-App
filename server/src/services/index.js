@@ -5,7 +5,7 @@
 //
 // One file per resource. createServices(provider, options) combines them into
 // one object that each part can also use (e.g. areas embed layers, timeseries
-// resolves areas). To add a resource (forecasts, hazards), write
+// resolves areas). To add a resource (e.g. hazards), write
 // services/<name>.js with the same (provider, services, options) signature and
 // add it to PARTS. `options` holds limits from the config (see config.js).
 
@@ -14,12 +14,15 @@ const PARTS = [
   require('./areas'),
   require('./layers'),
   require('./timeseries'),
+  require('./forecasts'),
   require('./meta'),
 ]
 
 /**
  * @param {import('../providers/types').DataProvider} provider
- * @param {{timeseriesMaxValues?: number}} [options]
+ * @param {{timeseriesMaxValues?: number, forecastRunner?: object|null, forecastMode?: string,
+ *          forecastSnapshotDir?: string, forecastTablesDir?: string, forecastCacheSize?: number,
+ *          forecastRetryAfterMs?: number}} [options]
  */
 function createServices(provider, options = {}) {
   const services = {}

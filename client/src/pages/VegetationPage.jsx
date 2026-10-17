@@ -9,6 +9,7 @@ import Compare from '../components/sections/Compare'
 import MapExplorer from '../components/map/MapExplorer'
 import PlotBuilder from '../components/sections/PlotBuilder'
 import Outlook from '../components/sections/Outlook'
+import ModelForecast from '../components/sections/ModelForecast'
 import Science from '../components/sections/Science'
 import Methods from '../components/sections/Methods'
 import Faq from '../components/sections/Faq'
@@ -18,7 +19,7 @@ import { PageSection } from '../components/ui'
 // The vegetation explorer ("/"). After the hero (title + city picker), the page
 // is organised into eight parts, each a PageSection holding one or more cards.
 // Links point at the cards' ids (about, glance, sources, features, why, compare,
-// where, plot, outlook, science, methods, faq, contact); update Footer.jsx when
+// where, plot, outlook, mlforecast, science, methods, faq, contact); update Footer.jsx when
 // renaming one.
 export default function VegetationPage() {
   return (
@@ -45,6 +46,7 @@ export default function VegetationPage() {
         </PageSection>
         <PageSection id="sec-forecast" title="Forecast">
           <Outlook />
+          <ModelForecast />
         </PageSection>
         <PageSection id="sec-science" title="Science">
           <Science />

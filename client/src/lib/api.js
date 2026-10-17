@@ -242,3 +242,14 @@ export async function fetchPixelValues(links) {
   )
   return { yearVals: years.values, changeVals: change.values, lstDayVals: lstDay.values, lstNightVals: lstNight.values }
 }
+
+/* ---- forecasts ---- */
+
+// GET /areas/:id/forecasts: the server runs the forecasting module (server/ml)
+// for one area and returns its response as `data` (shape documented in
+// lib/forecasts.js). Returns the whole envelope, because `meta` says when the
+// forecast was computed and, for a saved one, why (meta.generated,
+// meta.fallback). The target goes in `parameters` like everywhere else in the
+// API (one key); horizon, models (comma list) and interval as named.
+export const fetchForecast = (areaId, { target, horizon, models, interval = 'monthly' }, signal) =>
+  apiGet(`/areas/${encodeURIComponent(areaId)}/forecasts`, { query: { parameters: target, horizon, models, interval }, signal })

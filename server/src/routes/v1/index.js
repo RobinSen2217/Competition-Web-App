@@ -2,7 +2,6 @@
 // a new /api/v2 router next to this one, so existing clients keep working.
 // Planned resources (docs/API.md "Planned") get their own file here:
 //   hazards.js     GET /hazards, /areas/:areaId/hazards (Disaster module)
-//   forecasts.js   GET /areas/:areaId/forecasts
 
 const express = require('express')
 const { cache, CACHE_DATA } = require('../../http/respond')
@@ -17,6 +16,7 @@ router.use(require('./parameters'))
 router.use(require('./areas'))
 router.use(require('./timeseries'))
 router.use(require('./layers'))
+router.use(require('./forecasts'))
 router.use(require('./basemap'))
 
 module.exports = router

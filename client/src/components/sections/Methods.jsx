@@ -43,8 +43,11 @@ export default function Methods() {
         <Step title="Turn into physical indicators">
           Radiative and thermal (albedo, absorbed sunlight, day–night temperature range), moisture (rainfall, soil water, dewpoint) and surface indicators (greenness, built-up signal).
         </Step>
-        <Step title="Explain and forecast" plan="In development">
-          Remove the seasonal cycle, relate greenness to weather with time delays, and project the next months. A physics-informed neural network that respects water and energy balance replaces the statistical baseline.
+        <Step title="Explain and forecast">
+          Remove the seasonal cycle, relate greenness to weather with time delays, and project the next months with a statistical baseline. Next to it, the team notebook's machine-learning models (Ridge regression, a small neural network and gradient boosting) forecast greenness from physics-derived inputs: vapour pressure deficit, net radiation, evaporative demand and more.
+        </Step>
+        <Step title="Physics-informed network" plan="Planned">
+          A neural network that enforces water and energy balance, to forecast alongside the baseline and the machine-learning models.
         </Step>
         <Step title="Speed up and share" plan="Planned">
           FPGA hardware for fast processing of large image stacks, and this web interface for everyone else.

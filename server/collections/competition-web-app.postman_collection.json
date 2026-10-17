@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Competition Web App API v1",
-    "description": "REST API v1 serving the Competition Web App data (areas, parameters, timeseries, map layers and their values, basemap). Full reference: server/docs/API.md. Set the baseUrl variable to point at another server. Expected status for each request is in its description.",
+    "description": "REST API v1 serving the Competition Web App data (areas, parameters, timeseries, map layers and their values, forecasts, basemap). Full reference: server/docs/API.md. Set the baseUrl variable to point at another server. Expected status for each request is in its description.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -657,6 +657,117 @@
       ]
     },
     {
+      "name": "Forecasts",
+      "item": [
+        {
+          "name": "Forecast (defaults)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/forecasts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "forecasts"
+              ]
+            },
+            "description": "NDVI, 12 months, every model (ridge, nn, gbm), computed from the area's Earth Engine table (data/gee/jaipur.features.csv, the team notebook's pipeline). The first request per area takes a few seconds while the models train; repeats come from the cache. data.source is \"live\", or \"snapshot\" when the Python module cannot run. Expect 200 once the area has been extracted (npm run gee:extract); before that 503 forecast_unavailable with details.reason \"no_gee_data\"."
+          }
+        },
+        {
+          "name": "Forecast (explicit query)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaisalmer/forecasts?parameters=ndvi&horizon=12&models=ridge,nn,gbm&interval=monthly",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaisalmer",
+                "forecasts"
+              ],
+              "query": [
+                {
+                  "key": "parameters",
+                  "value": "ndvi"
+                },
+                {
+                  "key": "horizon",
+                  "value": "12"
+                },
+                {
+                  "key": "models",
+                  "value": "ridge,nn,gbm"
+                },
+                {
+                  "key": "interval",
+                  "value": "monthly"
+                }
+              ]
+            },
+            "description": "Same question written out: one parameter, horizon in months (1-24), models list. Jaisalmer is the notebook's own area. Expect 200 (503 no_gee_data until extracted)."
+          }
+        },
+        {
+          "name": "Forecast (one model, 6 months)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/delhi/forecasts?horizon=6&models=gbm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "delhi",
+                "forecasts"
+              ],
+              "query": [
+                {
+                  "key": "horizon",
+                  "value": "6"
+                },
+                {
+                  "key": "models",
+                  "value": "gbm"
+                }
+              ]
+            },
+            "description": "Models always come back in the order ridge, nn, gbm. Expect 200 (503 no_gee_data until extracted)."
+          }
+        }
+      ]
+    },
+    {
       "name": "Basemap",
       "description": "Satellite mosaics shown under the map.",
       "item": [
@@ -1153,6 +1264,282 @@
               ]
             },
             "description": "Sentinel-2 layers are images only. Expect 404 not_found."
+          }
+        },
+        {
+          "name": "Forecast: unknown area",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/atlantis/forecasts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "atlantis",
+                "forecasts"
+              ]
+            },
+            "description": "Expect 404 not_found."
+          }
+        },
+        {
+          "name": "Forecast: parameter that cannot be forecast",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/forecasts?parameters=rain",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "forecasts"
+              ],
+              "query": [
+                {
+                  "key": "parameters",
+                  "value": "rain"
+                }
+              ]
+            },
+            "description": "rain exists but has no forecast model. Expect 400 invalid_parameter (details.unforecastable, details.valid = [\"ndvi\"])."
+          }
+        },
+        {
+          "name": "Forecast: more than one parameter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/forecasts?parameters=ndvi,lst_day",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "forecasts"
+              ],
+              "query": [
+                {
+                  "key": "parameters",
+                  "value": "ndvi,lst_day"
+                }
+              ]
+            },
+            "description": "One parameter per request. Expect 400 invalid_query."
+          }
+        },
+        {
+          "name": "Forecast: horizon out of range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/forecasts?horizon=36",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "forecasts"
+              ],
+              "query": [
+                {
+                  "key": "horizon",
+                  "value": "36"
+                }
+              ]
+            },
+            "description": "horizon is a whole number from 1 to 24. Expect 400 invalid_query (details.min, details.max)."
+          }
+        },
+        {
+          "name": "Forecast: unknown model",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/forecasts?models=ridge,xgboost",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "forecasts"
+              ],
+              "query": [
+                {
+                  "key": "models",
+                  "value": "ridge,xgboost"
+                }
+              ]
+            },
+            "description": "Expect 400 invalid_query (details.unknown, details.allowed = [\"ridge\", \"nn\", \"gbm\"])."
+          }
+        },
+        {
+          "name": "Forecast: unsupported interval",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/forecasts?interval=yearly",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "forecasts"
+              ],
+              "query": [
+                {
+                  "key": "interval",
+                  "value": "yearly"
+                }
+              ]
+            },
+            "description": "Forecasts are monthly only. Expect 400 unsupported_interval (details.supported = [\"monthly\"])."
+          }
+        },
+        {
+          "name": "Forecast: data not extracted yet",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/bikaner/forecasts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "bikaner",
+                "forecasts"
+              ]
+            },
+            "description": "An area whose Earth Engine table (data/gee/<id>.features.csv) has not been extracted yet. Expect 503 forecast_unavailable with details.reason \"no_gee_data\" and a message saying so (200 once npm run gee:extract has run for it)."
+          }
+        },
+        {
+          "name": "Forecast: model not available",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/forecasts?horizon=18",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "forecasts"
+              ],
+              "query": [
+                {
+                  "key": "horizon",
+                  "value": "18"
+                }
+              ]
+            },
+            "description": "Needs an area with an extracted table and a server that cannot run Python: FORECAST_MODE=snapshot npm start (or FORECAST_PYTHON=/nonexistent). Expect 503 forecast_unavailable (details.saved) when no saved forecast covers 18 months; with one from npm run forecasts:build (24 months) 200 with data.source \"snapshot\"; 200 live with the module installed in live mode."
+          }
+        },
+        {
+          "name": "Forecast: model failure",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/jaipur/forecasts?horizon=18",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "areas",
+                "jaipur",
+                "forecasts"
+              ],
+              "query": [
+                {
+                  "key": "horizon",
+                  "value": "18"
+                }
+              ]
+            },
+            "description": "Needs an area with an extracted table and a module that fails: FORECAST_PYTHON=/usr/bin/false npm start. Without a saved forecast expect 502 model_failure; with one, 200 with data.source \"snapshot\" and meta.fallback \"model_failure\". 200 live with a working module."
           }
         },
         {

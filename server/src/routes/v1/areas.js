@@ -27,6 +27,6 @@ getOnly(router, '/areas/:areaId/boundary', async (req, res) => {
 })
 
 // Reserved (see docs/API.md "Planned"): POST /areas for custom areas of
-// interest, GET /areas/:areaId/forecasts and /areas/:areaId/hazards.
+// interest and GET /areas/:areaId/hazards. Forecasts: routes/v1/forecasts.js.
 
 module.exports = router

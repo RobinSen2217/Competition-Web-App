@@ -52,12 +52,19 @@ function urlTemplate(byTime, where) {
   return template
 }
 
+// Folders that are not this provider's data: saved forecasts (computed, see
+// src/forecast/snapshots.js) and the Earth Engine feature tables the forecasts
+// read (src/forecast/tables.js, versioned by their own file times). Changing
+// them must not count as a change of the site's data.
+const DERIVED_DIRS = new Set(['forecasts', 'gee'])
+
 // Newest modification time among the data files: "when was the data last
 // changed", good enough until a live pipeline records its own fetch time.
 function newestMtime(dir) {
   let newest = 0
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, entry.name)
+    if (entry.isDirectory() && DERIVED_DIRS.has(entry.name)) continue
     if (entry.isDirectory()) newest = Math.max(newest, newestMtime(p))
     else if (entry.name.endsWith('.json')) newest = Math.max(newest, fs.statSync(p).mtimeMs)
   }

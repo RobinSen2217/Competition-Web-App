@@ -35,6 +35,8 @@ public/
   logos/                    partner logos (MNIT Jaipur, St. Stephen's College), set in src/data/contact.js
   map/                      satellite mosaics (<id>.jpg) and place-name overlays (<id>_lab.png)
   map/s2_*.jpg              Sentinel-2 10 m layers (Jaisalmer only)
+  data/forecasts/           saved ML forecasts, <city>.<target>.json (e.g. jaipur.ndvi.json), generated
+                            by the server's forecasting module; used when the API is not (see "Forecasts")
   map/raster/<city>/        per-city MODIS rasters: ndvi-<year>.png, change.png, lst-day.png,
                             lst-night.png, and values.json (bundled per-pixel numbers for the pixel
                             inspector, used only when the API is unavailable)
@@ -50,6 +52,7 @@ src/
     api.js                  v1 API client: request helper, startup requests, v1 -> internal converters
     months.js params.js     month helpers, parameter definitions and number formatting
     stats.js                climatology, anomalies, OLS, correlation, baseline forecast
+    forecasts.js            ML forecast loader: live API run, or the saved snapshot (see "Forecasts")
     chart.js                small SVG line-chart engine (used through components/common/Chart)
     download.js storage.js theme.js
     map/                    Leaflet helpers: basemap mosaics, layer defs, geometry, popup HTML
@@ -61,8 +64,8 @@ src/
                             Seg, Btn, Select, Toggle, Readout, Note ...
     common/                 Chart, Sparkline
     layout/                 Nav (app name, partner logos, page tabs), Footer (vegetation page)
-    sections/               Hero, Glance, PlotBuilder, Why, Outlook, Compare, Intro, Science,
-                            Methods, Sources, Faq
+    sections/               Hero, Glance, PlotBuilder, Why, Outlook, ModelForecast, Compare, Intro,
+                            Science, Methods, Sources, Faq
     map/                    MapExplorer and its rail, planner and hooks
   styles/classes.js         shared class strings (cx, noteCls, selectCls, rangeCls)
   styles/leaflet.css        the only plain CSS: overrides for elements Leaflet creates itself
@@ -168,6 +171,43 @@ they exist, to the bundled copies: its series to `climate.json`, its outline to
 rasters under `public/map/raster/<city>/` with an entry in `rasters.json`. With
 the API, a new city appears in the site without client changes as long as it has
 a boundary and three mosaics (its map layers show when it has the four MODIS layers).
+
+## Forecasts
+
+The page's "Forecast" part has two cards:
+
+- **Outlook** (`sections/Outlook.jsx`): a quick statistical baseline (usual value
+  for the month + trend + recent anomaly) computed in the browser by
+  `lib/stats.js`, for six parameters, 3 or 6 months ahead.
+- **Machine-learning forecast** (`sections/ModelForecast.jsx`, card id
+  `mlforecast`): the team notebook's three models (Ridge regression, a small
+  neural network and gradient boosting), trained per city on its monthly NDVI,
+  weather and land-surface-temperature history, forecasting NDVI 12 months
+  ahead. The card shows the last 36 observed months with the forecast of the
+  selected model (or all three in "Compare all"), an optional hindcast (the
+  last 12 observed months re-predicted by a model that never saw them), the
+  test score in plain words (R² and RMSE on the most recent ~20% of months,
+  held out from training), the top five inputs by permutation importance, and
+  the assumptions the server returns (future weather = each month's historical
+  average, constants used in the physics features). It follows the selected city.
+
+The models run on the server, not in the browser: `../server/ml` is a Python
+package (`python -m forecaster`, JSON in, JSON out) that the API calls. Data flow:
+
+```
+ModelForecast ── loadForecast(city) (lib/forecasts.js, cached per city)
+   ├─ API in use:   GET /api/v1/areas/<id>/forecasts?target=ndvi&horizon=12&models=ridge,nn,gbm
+   │                (lib/api.js fetchForecast; 20 s timeout, a live run takes a few seconds)
+   └─ otherwise, or if that fails:  public/data/forecasts/<id>.ndvi.json  (saved snapshot)
+```
+
+Both sources return the forecasting module's response unchanged (shape
+documented at the top of `lib/forecasts.js` and in `../server/docs/API.md`),
+so the card shows "Source: live model" or "Source: saved snapshot" and is
+otherwise identical. The snapshots are generated on the server from the same
+module (see `../server/README.md`); regenerate them after the data or the model
+changes, or a statically hosted site keeps showing the old forecast. A city
+without a snapshot (and no API) shows a short error with a "Try again" button.
 
 ## Visitor counter
 

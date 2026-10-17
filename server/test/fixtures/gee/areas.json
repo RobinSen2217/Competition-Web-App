@@ -1,0 +1,8 @@
+[
+  {"id": "jaipur", "name": "Jaipur", "lat": 26.9124, "lon": 75.7873, "halfWidthKm": 1, "state": "Rajasthan"},
+  {"id": "jodhpur", "name": "Jodhpur", "lat": 26.2389, "lon": 73.0243, "halfWidthKm": 1, "state": "Rajasthan"},
+  {"id": "jaisalmer", "name": "Jaisalmer", "lat": 26.911773, "lon": 70.929989, "halfWidthKm": 1, "state": "Rajasthan"},
+  {"id": "bikaner", "name": "Bikaner", "lat": 28.0229, "lon": 73.3119, "halfWidthKm": 1, "state": "Rajasthan"},
+  {"id": "udaipur", "name": "Udaipur", "lat": 24.5854, "lon": 73.7125, "halfWidthKm": 1, "state": "Rajasthan"},
+  {"id": "delhi", "name": "Delhi", "lat": 28.6139, "lon": 77.209, "halfWidthKm": 1, "state": "NCT of Delhi"}
+]

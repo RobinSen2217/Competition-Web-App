@@ -139,7 +139,7 @@ export default function Outlook() {
       >
         <Kicker>Looking ahead</Kicker>
         <h2 id="outT">What the next months may look like</h2>
-        <Lede>A baseline forecast built from each month's usual value, the long-term trend and recent conditions. The shaded band is where 8 in 10 outcomes should fall. The physics-informed model will replace this baseline.</Lede>
+        <Lede>A baseline forecast built from each month's usual value, the long-term trend and recent conditions. The shaded band is where 8 in 10 outcomes should fall. The machine-learning models below forecast alongside this baseline; a physics-informed network that enforces water and energy balance is still planned.</Lede>
       </CardHead>
       <Readout id="fcRead">{readout}</Readout>
       {f ? (
