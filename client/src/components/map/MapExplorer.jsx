@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import L from 'leaflet'
-import { BOUND, CITY_IDS, DATA, RAS, loadPixelValues } from '../../lib/data'
+// Leaflet's stylesheet and our overrides for the elements it creates travel with
+// this lazily loaded chunk, so neither the JS nor the CSS of the map is
+// downloaded before the section approaches (VegetationPage's React.lazy).
+// Unlayered like before, so they still beat Tailwind's layered utilities.
+import 'leaflet/dist/leaflet.css'
+import '../../styles/leaflet.css'
+import { CITIES, CITY_IDS, getPixelValues, useAreaDetail, useBasemap } from '../../lib/store'
 import { FIRST_YEAR, LAST_YEAR } from '../../lib/months'
 import { css } from '../../lib/theme'
 import { store } from '../../lib/storage'
@@ -15,6 +21,7 @@ import useAreaPlanner from './useAreaPlanner'
 import MapRail from './MapRail'
 import AreaPlanner from './AreaPlanner'
 import { Card, CardHead, Kicker, Lede } from '../ui'
+import { SectionLoader } from '../common/SectionLoader'
 
 /*
   Map explorer (section#where). A Leaflet map of the selected city on a
@@ -26,21 +33,42 @@ import { Card, CardHead, Kicker, Lede } from '../ui'
 
   React renders the markup and holds the UI state; Leaflet objects are created
   and torn down imperatively in effects keyed on that state.
+
+  Data, loaded on demand (lib/store.js) when the section mounts:
+  - the basemap mosaics (useBasemap): needed before the map can exist, so a
+    loader covers the map area until then (the rail is usable at once);
+  - the selected city's boundary + layers (useAreaDetail): only the outline and
+    the data overlays wait for it; a small chip on the map says it is loading.
+    Cached per city, so switching back is instant;
+  - the other cities' centres come from the startup bootstrap (CITIES);
+  - per-pixel values (getPixelValues) are prefetched per city for the inspector.
 */
 
-const NO_OVERLAY = { main: null, left: null, swipe: false, followsYear: false, city: null }
+const NO_OVERLAY = { main: null, left: null, swipe: false, followsYear: false, area: null }
 // The swipe divider stays a little inside the edges so the handle is always grabbable
 const clampX = (x) => Math.min(0.97, Math.max(0.03, x))
 
 // Dark translucent buttons over the top right of the map. leading-[normal]
 // matches the `font:` shorthand of the original design.
 const TOOL_BTN = 'cursor-pointer rounded-full border border-[rgba(255,255,255,.22)] bg-[rgba(18,28,22,.78)] px-3 py-1.5 font-body text-[13px] leading-[normal] font-semibold text-[#F1F5F2] hover:bg-[rgba(18,28,22,.92)]'
+// Small status chip (area loading / failed), stacked just above the cursor chip
+// at the bottom left, where it collides with neither the zoom control nor the
+// map buttons even on a phone. It may wrap there, hence rounded-[14px].
+const MAP_CHIP = 'absolute bottom-[56px] left-3 z-700 flex max-w-[calc(100%-24px)] flex-wrap items-center gap-2 rounded-[14px] border border-[rgba(255,255,255,.22)] bg-[rgba(18,28,22,.85)] px-3 py-1.5 font-body text-[13px] leading-[normal] font-semibold text-[#F1F5F2]'
 // Year/layer captions either side of the swipe divider (position added per label)
 const SWIPE_LABEL = 'absolute top-14 rounded-full bg-[rgba(18,28,22,.75)] px-2.5 py-1 font-body text-[12px] leading-[normal] font-semibold whitespace-nowrap text-white'
 
 export default function MapExplorer() {
   const { city, setCity, focusSeq } = useApp()
   const theme = useThemeVersion()
+
+  /* ---- data (on demand, cached by the store) ---- */
+  const basemapQ = useBasemap()
+  // Same key as getPixelValues() uses internally (default include: boundary +
+  // layers), so the inspector's prefetch shares this request.
+  const areaQ = useAreaDetail(city)
+  // Only ever draw the selected city's own detail: undefined while it loads
+  const area = areaQ.status === 'ready' ? areaQ.data : undefined
 
   /* ---- UI state ---- */
   const [layer, setLayer] = useState(() => store.get('mlayer', 'green'))
@@ -59,7 +87,7 @@ export default function MapExplorer() {
   const d = layerDef(layer), isYear = d.id === 'green'
   // The swipe divider is shown only when there is an overlay for it to cut
   // (the original hid it when no main overlay existed).
-  const hasOverlay = d.id !== 'none' && !!mainSrc(city, d.id, { swipe, year, yb })
+  const hasOverlay = d.id !== 'none' && !!mainSrc(area, d.id, { swipe, year, yb })
 
   /* ---- refs to DOM nodes that Leaflet handlers update directly ---- */
   const mapEl = useRef(null)
@@ -67,7 +95,7 @@ export default function MapExplorer() {
   const swipeElRef = useRef(null)
   const handleRef = useRef(null)
 
-  const map = useBaseMap(mapEl, show.labOn)
+  const map = useBaseMap(mapEl, basemapQ.data, show.labOn)
   const { playing, start, stop } = useYearPlayer(year, setYear)
   const planner = useAreaPlanner(map)
 
@@ -86,19 +114,28 @@ export default function MapExplorer() {
   }, [map])
 
   /* ---- city outline, measurement box and camera ---- */
-  const distRef = useRef(null)
+  // The box only needs the city centre (bootstrap), so it appears at once; the
+  // district outline follows when the area detail has loaded.
   useEffect(() => {
     if (!map) return
-    const coral = css('--coral')
-    const dist = L.geoJSON(BOUND[city], { pane: 'shapes', style: { color: coral, weight: 2.5, fill: true, fillOpacity: 0.04, fillColor: coral }, interactive: false }).addTo(map)
     const box = L.rectangle(boxB(city), { pane: 'shapes', color: '#F2C14E', weight: 2.5, dashArray: '6 5', fill: true, fillOpacity: 0.06, interactive: false }).addTo(map)
+    return () => {
+      box.remove()
+    }
+  }, [map, city])
+
+  const boundary = area?.boundary
+  const distRef = useRef(null)
+  useEffect(() => {
+    if (!map || !boundary) return
+    const coral = css('--coral')
+    const dist = L.geoJSON(boundary, { pane: 'shapes', style: { color: coral, weight: 2.5, fill: true, fillOpacity: 0.04, fillColor: coral }, interactive: false }).addTo(map)
     distRef.current = dist
     return () => {
       dist.remove()
-      box.remove()
       distRef.current = null
     }
-  }, [map, city])
+  }, [map, boundary])
 
   // Camera: frame the box with some surroundings. Runs on every city pick, even
   // re-picking the current city (focusSeq bumps on each setCity), which recentres
@@ -129,7 +166,7 @@ export default function MapExplorer() {
     if (!map || !show.allOn) return
     const group = L.layerGroup().addTo(map)
     CITY_IDS.filter((x) => x !== city).forEach((x) => {
-      const c = DATA.cities[x]
+      const c = CITIES[x]
       L.circleMarker([c.lat, c.lon], { pane: 'shapes', radius: 7, color: '#fff', weight: 2, fillColor: '#1F6B47', fillOpacity: 1 })
         .bindTooltip(c.name, { direction: 'top', offset: [0, -6] })
         .on('click', () => setCity(x))
@@ -152,7 +189,8 @@ export default function MapExplorer() {
   useEffect(() => {
     yearRef.current = year
     const o = overlayRef.current
-    if (o.main && o.followsYear) o.main.setUrl(srcFor(o.city, 'green', year).url)
+    const src = o.main && o.followsYear ? srcFor(o.area, 'green', year) : null
+    if (src) o.main.setUrl(src.url)
   }, [year])
   const opRef = useRef(op)
   useEffect(() => {
@@ -210,26 +248,26 @@ export default function MapExplorer() {
     // a crisp square instead of a blur. The Sentinel-2 JPEGs are always smoothed.
     const className = show.pixOn && !def.img ? 'pixel-crisp' : ''
     const opts = { pane: 'index', opacity: opRef.current / 100, className, interactive: false }
-    const main = mainSrc(city, def.id, { swipe, year: yearRef.current, yb })
+    const main = mainSrc(area, def.id, { swipe, year: yearRef.current, yb })
     if (!main) {
       updateSwipe()
       return
     }
     let left = null
     if (yearLayer && swipe) {
-      const ls = srcFor(city, 'green', ya)
-      left = L.imageOverlay(ls.url, ls.b, opts).addTo(map)
+      const ls = srcFor(area, 'green', ya)
+      if (ls) left = L.imageOverlay(ls.url, ls.b, opts).addTo(map)
     }
     // Added after `left` so it sits on top; the swipe clip reveals `left` beneath
     const mainL = L.imageOverlay(main.url, main.b, opts).addTo(map)
-    overlayRef.current = { main: mainL, left, swipe, followsYear: yearLayer && !swipe, city }
+    overlayRef.current = { main: mainL, left, swipe, followsYear: yearLayer && !swipe, area }
     updateSwipe()
     return () => {
       mainL.remove()
       left?.remove()
       overlayRef.current = NO_OVERLAY
     }
-  }, [map, city, layer, swipe, ya, yb, show.pixOn, updateSwipe])
+  }, [map, area, layer, swipe, ya, yb, show.pixOn, updateSwipe])
 
   // Swipe handle: pointer drag (map panning is paused so the drag doesn't also
   // move the map) and arrow keys in 5 % steps.
@@ -266,7 +304,7 @@ export default function MapExplorer() {
   const pixVals = useRef({ city: null, vals: null })
   useEffect(() => {
     let live = true
-    loadPixelValues(city).then(
+    getPixelValues(city).then(
       (vals) => {
         if (live) pixVals.current = { city, vals }
       },
@@ -300,7 +338,7 @@ export default function MapExplorer() {
       const seq = ++clickSeq.current
       const current = () => alive() && seq === clickSeq.current
       const open = (html) => L.popup({ maxWidth: 260 }).setLatLng(ll).setContent(html).openOn(map)
-      const px = pixelAt(ll, layer, RAS[city])
+      const px = pixelAt(ll, layer, area?.raster)
       if (!px) {
         open(pointPopupHtml(ll, city))
         return
@@ -311,7 +349,7 @@ export default function MapExplorer() {
         return
       }
       // Values not here yet: wait for them, or fall back to the coordinate popup
-      loadPixelValues(city).then(
+      getPixelValues(city).then(
         (vals) => current() && open(build(vals)),
         () => current() && open(pointPopupHtml(ll, city)),
       )
@@ -355,7 +393,7 @@ export default function MapExplorer() {
   const fitRegion = () => map?.flyTo(REGION_CENTER, 6.5, { duration: 0.8 })
 
   return (
-    <Card id="where" aria-labelledby="mapT">
+    <Card id="where" aria-labelledby="mapT" aria-busy={basemapQ.status === 'loading' || areaQ.status === 'loading'}>
       <CardHead>
         <Kicker>Map explorer</Kicker>
         <h2 id="mapT">See where the city is greening or browning</h2>
@@ -409,6 +447,29 @@ export default function MapExplorer() {
           >
             Move over the map
           </span>
+          {/* Until the basemap has loaded there is no map: the loader (or the
+              error with "Try again") covers the empty container, above every
+              Leaflet pane and the map buttons. */}
+          {basemapQ.status !== 'ready' && (
+            <div className="absolute inset-0 z-800 bg-surface">
+              <SectionLoader label="Loading the satellite map…" error={basemapQ.error} onRetry={basemapQ.retry} className="h-full rounded-none" />
+            </div>
+          )}
+          {/* The city's outline and layers: a chip, so the photo stays visible */}
+          {basemapQ.status === 'ready' && areaQ.status === 'loading' && (
+            <p className={MAP_CHIP} role="status">
+              <span className="size-2 animate-pulse rounded-full bg-[#7fbc41] motion-reduce:animate-none" aria-hidden="true" />
+              Loading {CITIES[city]?.name ?? 'city'} layers…
+            </p>
+          )}
+          {basemapQ.status === 'ready' && areaQ.status === 'error' && (
+            <div className={MAP_CHIP} role="alert">
+              <span>{CITIES[city]?.name ?? 'City'} layers could not be loaded.</span>
+              <button type="button" className="cursor-pointer rounded-full border-0 bg-white px-2.5 py-0.5 text-[12px] font-bold text-[#1D3328]" onClick={areaQ.retry}>
+                Try again
+              </button>
+            </div>
+          )}
         </div>
         <MapRail
           city={city}

@@ -20,6 +20,10 @@ separate steps:
 The site's bundled NASA data (`server/data/climate.json`) is **not** used for
 forecasts.
 
+The hazard part (`python -m forecaster.hazards`: the flood events and the
+flood notebook's 3-day forecast) has its own section, [Hazards](#hazards),
+and its own environment.
+
 ## Setup
 
 Python 3.12. The virtual environment lives in `server/ml/.venv` (git-ignored):
@@ -345,3 +349,197 @@ and callers can ask for it by name. If it needs other inputs, add them to
 to come from the extraction). Bump `MODEL_VERSION` in `pipeline.py` whenever
 the response would change (results, or text such as `assumptions`), so cached
 forecasts are recomputed and saved snapshots can be told apart.
+
+## Hazards
+
+`forecaster.hazards` turns the team's flood data and the flood notebook
+(`flood_disaster.ipynb`, Part B) into the files the API serves under
+`/api/v1/hazards` (server `docs/API.md`, "Hazards"). It is separate from the
+NDVI black box above: nothing runs per web request.
+
+```sh
+cd server/ml
+./hazards-python -m forecaster.hazards import flood --rainfall <rainfall dir> --soil <soil_moisture dir>
+./hazards-python -m forecaster.hazards import flood --layers <dir with <event>_water_reference.tif>   # map layers only
+./hazards-python -m forecaster.hazards build flood            # -> server/data/hazards/flood/model/forecast.json
+./hazards-python -m forecaster.hazards build flood --stdout   # the same JSON on stdout, nothing written
+```
+
+Like the other CLIs: stdout carries one JSON object (or `{"error": ...}`),
+progress goes to stderr; exit 0 success, 2 invalid input (unknown hazard,
+missing dataset, wrong scikit-learn), 1 failure.
+
+### Setup: its own environment
+
+```sh
+cd server/ml
+python3 -m venv .venv-hazards                 # Apple Silicon: arch -x86_64 python3 -m venv .venv-hazards
+.venv-hazards/bin/pip install -r requirements-hazards.txt
+```
+
+`requirements-hazards.txt` pins scikit-learn **1.8.0**, pandas, numpy and
+rasterio (for the GeoTIFF bboxes). It is separate from `requirements.txt`
+because the notebook's forest cannot be reproduced with scikit-learn 1.9,
+while the NDVI models stay on their 1.9.1 pin (1.8 would change their GBM
+hindcast in the 5th decimal). `build` refuses scikit-learn >= 1.9 unless
+`--any-sklearn` is given. On an Apple Silicon Mac, create the venv as x86-64
+(Rosetta) and run it with `arch -x86_64 .venv-hazards/bin/python ...` for
+bit-exact results (see "Reproducing the notebook").
+
+### Import: the normalized dataset
+
+`import flood` reads the folders inside the team's `rainfall.zip` and
+`soil_moisture.zip` (`<event>/rainfall_daily.csv`, `rainfall_daily_grid.tif`,
+`README.md`; `<event>/soil_moisture_passes.csv`; the summary CSVs and
+READMEs) and writes `server/data/hazards/flood/`:
+
+| File | Contents |
+| --- | --- |
+| `events.json` | per event: `id`, `name` (README title), `country` {code, name}, `admin`, `place`, `period` {`reported`, `start`, `end`, `windowStart`, `windowEnd`, `soilWindowStart`}, `bbox` [W, S, E, N] (extent of the rainfall GeoTIFF, EPSG:4326, float32 edges rounded to 4 decimals), `center`, `cause`, `rainDriven`, `notes` (the README's event-specific "Things to know"), `summary` (the summary CSVs), `coverage`, `files`, `sources`; plus `tables` (column documentation), `datasets` (citations, DOIs) and general `notes` |
+| `events/<event>/daily.csv` | `date, rain_box_mm, rain_wettest_cell_mm, cells_with_data, in_flood_period` (from `date_utc, box_mean_mm, wettest_cell_mm, ...`) |
+| `events/<event>/soil_passes.csv` | the pass table, every column, `date_utc` renamed `date`, rows in the source's order |
+| `layers.json` | with `--layers`: map layers per event (`{layers: {eventId: [record]}}`), see below |
+| `events/<event>/layers/<layer>.png` | with `--layers`: each layer's overlay image |
+| `README.md` | generated description of all of it |
+
+Numbers are copied as the sources wrote them (no float round trip), booleans
+become `true`/`false`, so the model reads exactly what the notebook read.
+Every event is kept, Nepal included. Facts the files do not carry (country,
+admin area, cause, `rainDriven`) come from `forecaster/hazards/flood_events.json`;
+events missing there are imported with those fields `null`. The layout is the
+same for every hazard (`forecaster/hazards/dataset.py`).
+
+**Map layers (`--layers <dir>`).** Every `<event>_water_reference.tif` in the
+folder (the reference water labels of the flood notebook's Part A, used there
+to train and score the NISAR HH/HV water segmentation: EPSG:4326, uint8 band
+`water_label`, ~30 m, 0 = not water, 1 = water, 255 = unknown) becomes the
+layer `water-reference` of the event whose id the file name starts with
+(longest match; a file matching no event is skipped with a warning). For each,
+`forecaster/hazards/layers.py`:
+
+- counts the classes at the **native** resolution, each pixel row with its own
+  area (R² · Δφ · Δλ · cos φ, R = 6371.0088 km), over the whole raster and
+  inside the event bbox (`stats.eventBox`), giving km², % of the known
+  pixels and the unknown share;
+- writes an 8-bit palette PNG (encoded with `zlib`, no imaging package) at
+  most 2048 px on the long side: blocks of `ceil(longSide / 2048)` source
+  pixels become one image pixel by the "any water" rule (water if any source
+  pixel is water, else not water if any is, else unknown), water drawn
+  `#1a5cff` at 80% opacity, everything else transparent; `bounds`
+  (`[[south, west], [north, east]]`) include the few padded pixels;
+- records label, legend, stats, source and the image's size and SHA-256 in
+  `layers.json`, replacing only layers with the same id on the same event.
+
+The notebook does not say where the labels come from or which day they show,
+so the records say so (`source.origin`, `time`: `null`). With `--layers` alone
+`events.json` is left as it is (the events must already be imported); the
+source GeoTIFFs are not copied, so keep them to rebuild. Other hazards and
+layer kinds reuse `mask_layer` / `write_layers` with their own spec (server
+`docs/API.md`, "How to add").
+
+### Build: the flood model (`forecaster/hazards/flood.py`)
+
+The notebook's Part B was run out of order in Colab, and the cell that built
+`train_df`/`test_df` ("CELL 2") was deleted from the file. The pipeline that
+produced the printed results, reconstructed from the execution counts:
+
+1. **Data, cell 34 ("CELL 1")**: daily rainfall per event, Nepal skipped
+   (glacier collapse, not rain). Features per event, past days only:
+   `box_1d/3d/7d/max3d` and `wet_1d/3d/7d/max3d` (rolling sums and 3-day max,
+   `min_periods=1`). Soil: `mean_sm_recommended_only`, `coverage_pct`,
+   `mean_uncertainty` of the latest pass on or before the day
+   (`merge_asof(direction="backward", tolerance=24 days)`, last pass of a day
+   wins) and its age in days.
+2. **Target, cell 28**: `actual_flood_within_next_3_days` = flood period on
+   any of the next 3 days; the last 3 days of each event have none. 221
+   rows, 83.7% positive.
+3. **Split, "CELL 2"**: test = 02_china_guangxi, 07_india_bihar_bhagalpur,
+   09_thailand_bangkok (cell 32's `FORECAST_TEST_EVENTS`; 45 rows), train =
+   the other 6 events (176 rows). Cell 35 shows both frames with the target.
+4. **Models, cell 36 ("CELL 3")**: "Rainfall only" (8 features) and
+   "Rainfall + soil moisture" (12), each `SimpleImputer(median)` +
+   `RandomForestClassifier(300 trees, max_depth 6, min_samples_leaf 3,
+   balanced_subsample, random_state 42)`. Threshold: GroupKFold (5 folds over
+   whole training events) out-of-fold probabilities, thresholds
+   0.100..0.900 step 0.025, the first with the best balanced accuracy. Final
+   model on all training rows, scored on the test events.
+
+`tests/notebook_flood_partb.py` is a near-verbatim copy of those cells; a
+test checks the module against it row by row.
+
+What the build adds: **every day of every event** gets a probability per
+model and a danger class (`probability >= threshold`). Test events are scored
+by the final model; training events by their **out-of-fold** model (the fold
+that held the event out, i.e. the notebook's `oof` array), so no event is
+scored by a model that saw it. The last 3 days are scored the same way and
+have `target: null`. Nepal gets `role: "excluded"` and the reason. Per model
+the snapshot also holds the held-out test metrics (the notebook's table), the
+per-event metrics (test events: the notebook's event table; training events:
+from their out-of-fold probabilities), the out-of-fold balanced accuracy, all
+33 thresholds of the sweep, the feature importance, and the model inputs per
+day. `provenance.notebookCheck` compares 54 printed numbers with the run.
+
+One deliberate difference: the notebook predicts with `n_jobs=-1`, where
+scikit-learn adds the 300 trees' votes up in whatever order its threads
+finish, so the last bits of a probability change from run to run. The module
+fits with all cores (identical trees) but predicts with one core, so the
+same data always gives the same file (differences vs the notebook's way are
+below 1e-12; no printed number depends on them).
+
+### Reproducing the notebook
+
+On x86-64 with scikit-learn 1.8.0 (the committed snapshot: Python 3.12,
+numpy 2.5.3, pandas 3.0.6, under Rosetta) every printed number matches
+(`notebookCheck.matches: true`): 221 records, positive rate 0.837, the cell-34
+per-event table, thresholds 0.550 / 0.750, out-of-fold balanced accuracy
+0.777 / 0.800, and the test table (accuracy 0.756 / 0.778, balanced accuracy
+0.542 / 0.583, precision 0.750 / 0.767, recall 1.0, F1 0.857 / 0.868,
+ROC AUC 0.692 / 0.692, AP 0.877 / 0.874, 45 rows, actual positive rate 0.733,
+predicted 0.978 / 0.956) and the per-event test table. Also tried: x86-64
+with scikit-learn 1.6.1 matches the same way; on arm64, 1.5.2, 1.6.1, 1.7.2 and
+1.8.0 all give the same numbers (the arm64 row below). The notebook ran Python
+3.13 on Colab; Python 3.12 here reproduces it, so the Python version does not
+matter for these results.
+
+Where it differs, and why:
+
+| Environment | Differs from the notebook | Why |
+| --- | --- | --- |
+| scikit-learn 1.9.x (any machine) | out-of-fold balanced accuracy 0.781 / 0.804, soil model ROC AUC 0.689 and AP 0.869; thresholds and every threshold-based test metric unchanged | 1.9 changed how forests draw bootstrap samples with class weights (`balanced_subsample` and sample weights now go into the sampling), so the trees differ |
+| scikit-learn <= 1.8 on arm64 (Apple Silicon) | soil model out-of-fold balanced accuracy 0.804 instead of 0.800; everything else matches | floating-point differences in tree building between the arm64 and x86-64 builds flip a near-tied split in one fold |
+
+### Tests
+
+```sh
+cd server/ml
+./hazards-python -m unittest discover -t . -s tests -p 'test_hazards*.py'
+# with the source folders: also re-imports and compares file by file
+FLOOD_SOURCE_DIR=/path/with/rainfall+soil_moisture ./hazards-python -m unittest -v tests.test_hazards_import
+# with the layer GeoTIFFs: also rebuilds the layers and compares them byte for byte
+FLOOD_LAYERS_DIR=/path/with/water_reference_tifs ./hazards-python -m unittest -v tests.test_hazards_layers
+```
+
+(prefix `arch -x86_64` on Apple Silicon). `test_hazards_import.py`: the
+import on a synthetic source tree (values kept as written, booleans, source
+order, notes split, curated facts, bbox from a float32 GeoTIFF, errors) and
+the committed dataset's consistency. `test_hazards_flood.py`: the building
+blocks (target, rolling features, the 24-day backward soil join, exclusion),
+the module against the notebook copy row by row, the scoring rules (no event
+scored by a model that saw it) and the CLI. `test_hazards_flood_acceptance.py`:
+the notebook's printed numbers, and that the committed snapshot equals a
+fresh build. `test_hazards_layers.py`: the layer helpers (any-water
+downsampling, the PNG encoder, per-row pixel areas, class stats, the event-box
+window, merging layers.json), the `--layers` import on synthetic GeoTIFFs
+(bounds, padding, colours, refusals, CLI) and the committed layers. With the main `.venv` (scikit-learn 1.9.1, no rasterio) the
+acceptance and GeoTIFF tests skip with the reason and the rest runs, so
+`.venv/bin/python -m unittest` stays green.
+
+### Adding a hazard
+
+Write `forecaster/hazards/import_<hazard>.py` (writing the layout of
+`dataset.py`) and, if it has a model, a module with `run(base) -> snapshot`,
+`check_environment()` and `MODEL_VERSION`; register both in `HAZARDS` in
+`forecaster/hazards/__main__.py`. Per-event map layers are optional: build
+them with `layers.mask_layer` and `layers.write_layers` (as the flood's
+`--layers` does). The server side is a catalog file (server
+`docs/API.md`, "How to add").

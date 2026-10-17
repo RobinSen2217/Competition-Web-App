@@ -5,7 +5,7 @@ React 19 + Vite 8 front end. One nav bar switches between two pages:
 | Path | Page |
 | --- | --- |
 | `/` | **Vegetation**: the satellite vegetation and climate explorer, ported from the single-file prototype (`vegetation-of-the-city/index.html`) |
-| `/disaster/flood` | **Disaster → Flood**: placeholder page (`src/pages/FloodPage.jsx`); `/disaster` redirects here. More hazards: add a route in `App.jsx` and an entry in `HAZARDS` in `Nav.jsx` |
+| `/disaster/flood` | **Disaster → Flood**: past flood events with daily rainfall / soil moisture, the danger-day forecast and its scores (`src/pages/FloodPage.jsx`, sections in `src/components/flood/`, data via `src/lib/hazards.js`); `/disaster` redirects here. More hazards: add a route in `App.jsx` and an entry in `HAZARDS` in `Nav.jsx` |
 
 Routing uses React Router (`src/App.jsx`). `vercel.json` rewrites every path
 except `/api/...` to `index.html`, so `/disaster/flood` also works when opened directly.
@@ -24,8 +24,8 @@ npm run lint       # oxlint
 ```
 
 `vite.config.js` proxies `/api` to `http://localhost:5050` for the Express server in `../server`
-(start it with `npm run dev` there). Without the server the site still works on its bundled data;
-see [Data](#data).
+(start it with `npm run dev` there). Without the server the site still works on its static
+fallback data; see [Data](#data).
 
 ## Layout
 
@@ -35,21 +35,24 @@ public/
   logos/                    partner logos (MNIT Jaipur, St. Stephen's College), set in src/data/contact.js
   map/                      satellite mosaics (<id>.jpg) and place-name overlays (<id>_lab.png)
   map/s2_*.jpg              Sentinel-2 10 m layers (Jaisalmer only)
+  data/fallback/            static copies of the data (climate, boundaries, mapmeta, rasters .json), fetched
+                            on demand when the API is not used (see "Data"); never bundled into the JS
   data/forecasts/           saved ML forecasts, <city>.<target>.json (e.g. jaipur.ndvi.json), generated
                             by the server's forecasting module; used when the API is not (see "Forecasts")
   map/raster/<city>/        per-city MODIS rasters: ndvi-<year>.png, change.png, lst-day.png,
-                            lst-night.png, and values.json (bundled per-pixel numbers for the pixel
+                            lst-night.png, and values.json (static per-pixel numbers for the pixel
                             inspector, used only when the API is unavailable)
 src/
-  main.jsx                  entry; starts initData() + the App.jsx import, renders Boot
+  main.jsx                  entry; starts bootstrap() (city list only) + the App.jsx import, renders Boot
   Boot.jsx                  shows the animated Loader until the app is ready, then crossfades
   App.jsx                   router: nav bar + the page for the current path, with page transitions
   pages/                    VegetationPage (all its sections + footer), DisasterPage (layout), FloodPage
   hooks/useModuleTheme.js   sets <html data-module="disaster"> on /disaster/* (blue theme)
-  data/                     bundled fallback datasets (see "Data" below)
+  data/contact.js           partner institutions and team (Contact card, nav, footer)
   lib/
-    data.js                 the single access point for all data: loads it from the API (or the bundle)
-    api.js                  v1 API client: request helper, startup requests, v1 -> internal converters
+    store.js                the single access point for data: bootstrap, on-demand cached loading,
+                            hooks (useTimeseries, useAreaDetail, useBasemap, useResource), static fallback
+    api.js                  v1 API client: request helper, requests, v1 -> internal converters
     months.js params.js     month helpers, parameter definitions and number formatting
     stats.js                climatology, anomalies, OLS, correlation
     forecasts.js            ML forecast loader: live API run, or the saved snapshot (see "Forecasts")
@@ -62,8 +65,9 @@ src/
   components/
     ui/                     shared Tailwind building blocks: Card, CardHead, Kicker, Lede, Chip, Pill,
                             Seg, Btn, Select, Toggle, Readout, Note ...
-    common/                 Chart, Sparkline
-    layout/                 Nav (app name, partner logos, page tabs), Footer (vegetation page)
+    common/                 Chart, Sparkline, Loader (boot), SectionLoader (in-card loader + skeletons),
+                            LazySection (mounts a section near the viewport), ErrorBoundary
+    layout/                 Nav (app name, partner logos, city picker, page tabs), CityPicker, Footer
     sections/               Hero, Glance, PlotBuilder, Why, ModelForecast, Compare, Intro,
                             Science, Methods, Sources, Faq
     map/                    MapExplorer and its rail, planner and hooks
@@ -109,49 +113,87 @@ Styling is Tailwind CSS v4 utilities, written directly on the elements.
 
 ## Data
 
-The site loads its data from the Express API in `../server` at startup and
-falls back to bundled copies when the API cannot be reached.
+The site loads its data from the Express API in `../server`, piece by piece as
+the reader scrolls, and falls back to static copies when the API cannot be reached.
 
-`src/lib/data.js` is the single access point. Before React renders, `main.jsx`
-awaits `initData()`, which makes three requests to the v1 API in parallel (4 s timeout):
+`src/lib/store.js` is the single access point (its header has the full guide).
 
-| Request | Bundled fallback | Becomes |
+**Startup** (`main.jsx` awaits `bootstrap()`, with the boot loader on screen)
+makes one small request, `GET /api/v1/areas?type=city` (waits 4 s, see Fallback). It gives
+the city list (`CITY_IDS`, `CITIES`: names, states, centres, which parameters
+have data) and the monthly time axis `M` (from the areas' coverage), which
+`lib/months.js` and the charts read synchronously. Nothing else is loaded yet.
+
+**Sections load their own data** when they come near the viewport:
+`components/common/LazySection.jsx` mounts a section about 800px before it
+scrolls into view (and at once when a `#anchor` link targets it), and the
+section asks the store for what it draws, showing an in-card loader
+(`SectionLoader.jsx`) meanwhile:
+
+| Hook / function | Request | Static fallback |
 | --- | --- | --- |
-| `/api/v1/timeseries?areas=*&parameters=*&interval=monthly` | `src/data/climate.json` | `DATA`: `{ months: ["2010-01", ...], cities: { id: { name, state, lat, lon, series: { ndvi, rain, ... } } } }` (names and centres come from `/areas`) |
-| `/api/v1/areas?type=city&include=boundary,layers` | `src/data/boundaries.json`, `src/data/rasters.json` | `BOUND` (district outline per city) and `RAS` (raster bounds and image URLs per city, from each area's layers) |
-| `/api/v1/basemap` | `src/data/mapmeta.json` | `MAPMETA`: bounds and zoom of every basemap mosaic in `public/map`, grouped by area |
+| `useTimeseries({ areas, parameters })` | `/api/v1/timeseries?areas=..&parameters=..&interval=monthly` | `public/data/fallback/climate.json` |
+| `useAreaDetail(id)` | `/api/v1/areas/<id>?include=boundary,layers` | `boundaries.json`, `rasters.json` |
+| `useBasemap()` | `/api/v1/basemap` | `mapmeta.json` |
+| `getPixelValues(id)` (map inspector, on click) | the four MODIS layers' `/values` | `public/map/raster/<id>/values.json` |
+| `loadForecast(id)` (`lib/forecasts.js`) | `/api/v1/areas/<id>/forecasts` | `public/data/forecasts/<id>.ndvi.json` |
 
-If all three succeed and look valid, the API data is used; if any one fails,
-everything comes from the bundle (sources are never mixed). The browser console
-logs which one is in use (`[data] using API ...` or `[data] using bundled data`).
-The per-pixel values for the map's pixel inspector are fetched on demand: with
-the API, from the `/values` resource of the four MODIS layers
-(`/api/v1/areas/<id>/layers/<layerId>/values`, in parallel); with the bundle,
-from `public/map/raster/<id>/values.json`.
+Requests are de-duplicated and cached in memory for the page's lifetime
+(series per city and parameter, so overlapping requests only fetch what is
+missing); switching city fetches only what the mounted sections need for it.
+The city is picked in the hero's shelf or, from anywhere on the page, with
+the city picker in the sticky nav (`components/layout/CityPicker.jsx`); both
+call `useApp().setCity`. The plot builder fetches only the parameters selected
+in it.
+The heaviest sections (map with Leaflet, plot builder, forecast) are also
+split into their own JS chunks, downloaded on approach.
+Until a section mounts, its placeholder has the real card's height for the
+current width, from the measured tables in `src/lib/sectionHeights.js`
+(re-measure them after changing a card; how is described there).
+Error boundaries keep a failure local: a section that fails to render or
+whose chunk cannot be downloaded (e.g. after a redeploy) shows an error card
+with "Try again" (which re-imports, and reloads the page at that section if
+the chunk is still missing); a broken page keeps the nav; the whole app has a
+last-resort "Reload" screen.
+
+**Fallback.** When the API is not used (a production build without
+`VITE_API_URL`) or does not answer the startup request within 4 s, every call
+is answered from the static files in `public/data/fallback/`, fetched only when
+needed and converted to the same shapes, so every section works the same. The
+browser console logs it (`[data] using API ...` or `[data] using static
+fallback files`).
+A sleeping API (Render's free tier needs ~10-50 s for its first answer) is not
+waited for at startup, but its request keeps running for up to 60 s: if it
+answers and lists the same cities, parameters and months, everything loaded
+from then on comes from the API (`[data] API answered late ...`), while what
+was already loaded stays. A failed API is not retried. Details at the top of
+`lib/store.js`.
 Map images (`public/map/...`) are always static files served with the site.
 
+How a section asks for its data (hooks, loading and error states) is
+described at the top of `lib/store.js`.
+
 The API speaks in generic resources (areas, parameters, layers, time series; see
-`../server/docs/API.md`), while the components use the small city-based shapes
-above. `src/lib/api.js` holds everything API-specific: the request helper
+`../server/docs/API.md`), while the components use small city-based shapes.
+`src/lib/api.js` holds everything API-specific: the request helper
 (`apiGet`/`apiData`, which unwraps the `{ data, meta }` envelope and turns the
-`{ error: { code, ... } }` envelope into an `ApiError`), the startup requests,
-and the converters from v1 resources to `DATA`, `BOUND`, `MAPMETA` and `RAS`.
-`RASTER_LAYERS` there maps the explorer's four MODIS layers to API layer ids.
-When the API changes (or new resources such as forecasts or hazards are used),
-only `api.js` needs to follow; components keep importing from `lib/data.js`.
+`{ error: { code, ... } }` envelope into an `ApiError`), the requests, and the
+converters from v1 resources to the store's shapes. `RASTER_LAYERS` there maps
+the explorer's four MODIS layers to API layer ids. When the API changes, only
+`api.js` (and the fallback adapter in `store.js`) need to follow.
 The Sentinel-2 layers for Jaisalmer are still defined client-side in
 `src/lib/map/layers.js`.
 
-Rule: nothing that reads the data may be imported before `initData()` finishes
-(for example `lib/months.js` computes the year range at import time). That is why
-`main.jsx` imports `App.jsx` dynamically. Components import from `lib/data.js` as usual.
+Rule: nothing that reads `CITY_IDS`, `CITIES` or `M` may be evaluated before
+`bootstrap()` finishes (for example `lib/months.js` computes the year range at
+import time). That is why `main.jsx` imports `App.jsx` dynamically.
 
 ### API URL (`VITE_API_URL`)
 
 | Where | Setting | Result |
 | --- | --- | --- |
 | Local dev | unset | requests go to `/api` on the dev server, which Vite proxies to `http://localhost:5050` |
-| Production (Vercel) | unset | the API is skipped and the bundled data is used (no requests are made) |
+| Production (Vercel) | unset | the API is skipped and the static fallback files are used (no API requests) |
 | Production (Vercel) | `https://<server-domain>` | requests go to the hosted Express server |
 
 Set it in Vercel under Project Settings > Environment Variables, or locally in
@@ -160,14 +202,14 @@ bakes it in at build time, so redeploy after changing it. The server must allow
 the site's origin in its `CORS_ORIGINS`. The `/api/v1` prefix is added in
 `src/lib/api.js`.
 
-Until the API is hosted, production runs on the bundled data. Once it is live,
-the bundled copies (`src/data/climate.json`, `boundaries.json`, `mapmeta.json`,
-`rasters.json` and `public/map/raster/*/values.json`) can be removed together
-with the fallback in `lib/data.js`.
+Without `VITE_API_URL`, production runs on the static fallback files. Once the
+API is reliably live, the copies (`public/data/fallback/*.json` and
+`public/map/raster/*/values.json`) can be removed together with the fallback
+adapter in `lib/store.js`.
 
 To add a city, add it to the server's data (see `../server/README.md`) and, while
-they exist, to the bundled copies: its series to `climate.json`, its outline to
-`boundaries.json`, its three mosaics to `mapmeta.json` and `public/map`, and its
+they exist, to the fallback copies: its series to `public/data/fallback/climate.json`,
+its outline to `boundaries.json`, its three mosaics to `mapmeta.json` and `public/map`, and its
 rasters under `public/map/raster/<city>/` with an entry in `rasters.json`. With
 the API, a new city appears in the site without client changes as long as it has
 a boundary and three mosaics (its map layers show when it has the four MODIS layers).
@@ -220,3 +262,16 @@ or setup is needed (`src/components/layout/VisitorCounter.jsx`).
   moves to a new domain.
 - The counter expires after 6 months without any visit, and the footer line is
   hidden if the service can't be reached.
+
+## Hazard data (Disaster pages)
+
+`src/lib/hazards.js` loads `/api/v1/hazards/...` (see `server/docs/API.md`, "Hazards") through the store's cache, one
+whole resource per request, and the flood page reads every label, unit, parameter, model and threshold from it, so new
+hazards, events or parameters need no client change. When the site has no API, or the API has no hazard endpoints
+(the hosted API before a redeploy), it reads the static copy in `public/data/hazards/` instead (file names in
+`src/lib/hazardPaths.js`). Refresh that copy after the server's hazard data changes:
+
+```sh
+npm run hazards:snapshot                            # from the API at http://localhost:5050
+npm run hazards:snapshot -- http://localhost:5097   # or another server
+```

@@ -36,7 +36,7 @@ export function Card({ className, children, ...props }) {
   return (
     <Reveal
       as="section"
-      className={cx('flex min-w-0 scroll-mt-[72px] flex-col gap-[18px] rounded-[22px] bg-surface p-[clamp(18px,3vw,30px)] shadow-card', className)}
+      className={cx('flex min-w-0 scroll-mt-[72px] max-[580px]:scroll-mt-[100px] flex-col gap-[18px] rounded-[22px] bg-surface p-[clamp(18px,3vw,30px)] shadow-card', className)}
       {...props}
     >
       {children}

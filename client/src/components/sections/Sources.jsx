@@ -1,7 +1,8 @@
 import { Card, CardHead, Kicker, Note } from '../ui'
 
 // Data sources: one row per measure with its provider, resolution and time span.
-// The "Covers" dates describe the bundled dataset and must be updated with it.
+// The "Covers" dates describe the dataset (the API's data and its static copy in
+// public/data/fallback/) and must be updated with it.
 const ROWS = [
   ['Vegetation greenness (NDVI)', 'NASA MODIS Terra MOD13Q1, via ORNL DAAC', '250 m, 16-day composites; monthly greenest scene, averaged over the box', 'Jan 2010 to Sep 2026'],
   ['Land surface temperature, day and night', 'NASA MODIS Terra MOD11A2, via ORNL DAAC', '1 km, 8-day; monthly mean of clear pixels', 'Jan 2010 to Sep 2026'],

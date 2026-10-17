@@ -1,5 +1,5 @@
 import L from 'leaflet'
-import { CITY_IDS, MAPMETA } from '../data'
+import { CITY_IDS } from '../store'
 import { REGION_CENTER } from './geometry'
 import { asset } from '../asset'
 
@@ -10,16 +10,20 @@ import { asset } from '../asset'
   the mosaics that are useful at the current zoom and near the current view, so
   the browser never loads all of them at once.
 
+  `mosaics` is the basemap description from lib/store.js useBasemap():
+  { region: [m, m], <cityId>: [z10, z13, z15] }. It is fetched only when the map
+  section approaches, so MapExplorer creates the map once it has arrived.
+
   Panes, bottom to top: base (200) photo, index (250) data layers,
   labels (300) place names, shapes (400) district/box/markers/planner.
 */
-export function createBaseMap(el) {
+export function createBaseMap(el, mosaics) {
   const map = L.map(el, {
     minZoom: 5,
     maxZoom: 17,
     zoomSnap: 0.5,
     wheelPxPerZoomLevel: 100,
-    maxBounds: L.latLngBounds(MAPMETA.region[0].bounds).pad(0.1),
+    maxBounds: L.latLngBounds(mosaics.region[0].bounds).pad(0.1),
   }).setView(REGION_CENTER, 6)
   map.attributionControl.setPrefix(false).addAttribution('Imagery © Esri, Maxar, Earthstar Geographics · Boundaries: geoBoundaries')
   L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map)
@@ -35,10 +39,12 @@ export function createBaseMap(el) {
     base.push({ l: L.imageOverlay(asset(meta.image), meta.bounds, { pane: 'base', interactive: false }), minZ })
     if (meta.labels) labels.push({ l: L.imageOverlay(asset(meta.labels), meta.bounds, { pane: 'labels', interactive: false }), z: meta.z })
   }
-  addMosaic(MAPMETA.region[0], 0)
-  addMosaic(MAPMETA.region[1], 7)
+  addMosaic(mosaics.region[0], 0)
+  addMosaic(mosaics.region[1], 7)
   CITY_IDS.forEach((c) => {
-    const [a, b, d] = MAPMETA[c]
+    // A city the server has no three mosaics for gets only the regional photo
+    if ((mosaics[c] || []).length < 3) return
+    const [a, b, d] = mosaics[c]
     addMosaic(a, 9)
     addMosaic(b, 12)
     addMosaic(d, 14)

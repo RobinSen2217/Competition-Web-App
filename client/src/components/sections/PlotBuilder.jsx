@@ -1,12 +1,17 @@
 // "Choose what to plot": pick parameters, a year range and a layout (separate
 // panels, all together on a 0–100 scale, or by season), read every value under
 // the pointer in the readout, and download the data (CSV) or the charts (PNG).
+//
+// Data: only the selected parameters of the selected city are fetched (store
+// useTimeseries, cached per city + parameter), so adding a pill loads just that
+// one series and going back to a city already seen costs nothing.
 import { useCallback, useMemo, useRef, useState } from 'react'
 import Chart from '../common/Chart'
+import { SectionLoader } from '../common/SectionLoader'
 import { Btn, Card, CardHead, Group, GroupTitle, Kicker, Lede, Pill, PillDot, Pills, Readout, ReadoutItem, ReadoutWhen, Seg, SegButton, Select, Swatch, Toggle } from '../ui'
 import { useApp } from '../../state/appContext'
 import useThemeVersion from '../../hooks/useThemeVersion'
-import { DATA, M, N, ser } from '../../lib/data'
+import { CITIES, M, N, useTimeseries } from '../../lib/store'
 import { MON, mLabel, mOf, yOf, YEARS, FIRST_YEAR, LAST_YEAR } from '../../lib/months'
 import { PARAMS, P, fmtv, unitS } from '../../lib/params'
 import { clim, lastIdx, roll } from '../../lib/stats'
@@ -86,10 +91,11 @@ const panelCls = 'flex flex-col gap-0.5'
 const panelUnitCls = 'font-medium text-muted'
 
 // Parameter name on the left, unit/source <span> on the right. data-panel-title
-// lets the PNG export find the titles.
-function PanelTitle({ children }) {
+// lets the PNG export find the titles; placeholder panels (no chart yet) leave
+// it off (mark={false}) so titles and chart SVGs stay paired one to one.
+function PanelTitle({ mark = true, children }) {
   return (
-    <div data-panel-title="" className="flex justify-between gap-2.5 text-[14px] font-semibold">
+    <div data-panel-title={mark ? '' : undefined} className="flex justify-between gap-2.5 text-[14px] font-semibold">
       {children}
     </div>
   )
@@ -97,10 +103,10 @@ function PanelTitle({ children }) {
 
 // Separate view: one panel per parameter on its own scale, optionally with a
 // 12-month running average drawn over a faded raw line.
-function TimePanel({ city, k, slot, i0, i1, smooth, hover, onHover }) {
+function TimePanel({ k, a, slot, i0, i1, smooth, hover, onHover }) {
   const options = useCallback(
     (width) => {
-      const a = ser(city, k), color = slotColor(slot)
+      const color = slotColor(slot)
       const pts = a.map((v, i) => ({ x: i, y: v })).filter((p) => p.x >= i0 && p.x <= i1)
       // Rainfall-like totals get a filled area, but not under the average line (too busy).
       const series = [{ name: P[k].label, color, w: smooth ? 1.2 : 2, op: smooth ? 0.45 : 1, pts, area: P[k].sum && !smooth }]
@@ -115,7 +121,7 @@ function TimePanel({ city, k, slot, i0, i1, smooth, hover, onHover }) {
         })
       return { aria: P[k].label + ' over time', series, x0: i0, x1: i1, xTicks: yearTicks(i0, i1, width), zero: P[k].sum }
     },
-    [city, k, slot, i0, i1, smooth],
+    [a, k, slot, i0, i1, smooth],
   )
   return (
     <div className={panelCls}>
@@ -132,10 +138,10 @@ function TimePanel({ city, k, slot, i0, i1, smooth, hover, onHover }) {
 
 // By-season view: every year in range as a faint Jan–Dec line, the average
 // year (climatology to 2025) dashed, and the latest year with data in colour.
-function SeasonPanel({ city, k, slot, y0, y1, hover, onHover }) {
+function SeasonPanel({ k, a, slot, y0, y1, hover, onHover }) {
   const options = useCallback(
     (width) => {
-      const a = ser(city, k), ly = yOf(lastIdx(a)), cl = clim(a)
+      const ly = yOf(lastIdx(a)), cl = clim(a)
       // Fold the monthly series into { year: [12 values] } for the chosen years.
       const years = {}
       a.forEach((v, i) => {
@@ -152,7 +158,7 @@ function SeasonPanel({ city, k, slot, y0, y1, hover, onHover }) {
       if (years[ly]) series.push({ name: String(ly), color: slotColor(slot), w: 2.6, pts: years[ly].map((v, m) => ({ x: m, y: v })), end: true })
       return { aria: P[k].label + ' by month', series, x0: 0, x1: 11, xTicks: monthTicks(width), zero: P[k].sum }
     },
-    [city, k, slot, y0, y1],
+    [a, k, slot, y0, y1],
   )
   return (
     <div className={panelCls}>
@@ -167,17 +173,18 @@ function SeasonPanel({ city, k, slot, y0, y1, hover, onHover }) {
 
 // Together view: all parameters on one chart. Units differ, so each line is
 // min–max scaled within the visible window (0 = its lowest, 100 = its highest).
-function TogetherPanel({ city, selection, i0, i1, smooth, hover, onHover }) {
+// `keys` are the selected parameters whose series are loaded, `s` the series.
+function TogetherPanel({ keys, s, slotOf, i0, i1, smooth, hover, onHover }) {
   const options = useCallback(
     (width) => {
-      const series = selection.sel.map((k) => {
-        const a = ser(city, k), src = smooth ? roll(a) : a
+      const series = keys.map((k) => {
+        const a = s[k], src = smooth ? roll(a) : a
         // The 0–100 range comes from the raw values even when smoothing, so the
         // smoothed line sits inside the same reference as the raw one.
         const win = a.slice(i0, i1 + 1).filter((v) => v != null), lo = Math.min(...win), hi = Math.max(...win)
         return {
           name: P[k].label,
-          color: slotColor(selection.slotOf[k]),
+          color: slotColor(slotOf[k]),
           w: 2,
           pts: src.map((v, i) => ({ x: i, y: v == null || i < i0 || i > i1 ? null : ((v - lo) / (hi - lo || 1)) * 100 })).filter((p) => p.x >= i0 && p.x <= i1),
         }
@@ -193,11 +200,32 @@ function TogetherPanel({ city, selection, i0, i1, smooth, hover, onHover }) {
         xTicks: yearTicks(i0, i1, width),
       }
     },
-    [city, selection, i0, i1, smooth],
+    [keys, s, slotOf, i0, i1, smooth],
   )
   return (
     <div className={panelCls}>
       <Chart options={options} hover={hover} onHover={onHover} tall />
+    </div>
+  )
+}
+
+// Stand-in for one parameter's panel while its series loads (a pill was just
+// added), or when this city has no such series. Same title and chart height,
+// so the panels below don't move when the chart arrives.
+function PendingPanel({ k, missing }) {
+  return (
+    <div className={panelCls}>
+      <PanelTitle mark={false}>
+        {P[k].label}
+        <span className={panelUnitCls}>{P[k].unit || 'index'}</span>
+      </PanelTitle>
+      {missing ? (
+        <p className="flex h-[180px] items-center justify-center rounded-[14px] bg-surface2 px-4 text-center text-[14px] text-muted">
+          No {P[k].label} data for this city.
+        </p>
+      ) : (
+        <SectionLoader label={`Loading ${P[k].label}…`} className="h-[180px] min-h-0" />
+      )}
     </div>
   )
 }
@@ -220,6 +248,18 @@ export default function PlotBuilder() {
   const panelsRef = useRef(null)
 
   const [i0, i1] = useMemo(() => rangeIdx(y0, y1), [y0, y1])
+
+  // The selected parameters of this city. keepPrevious: while a newly added
+  // pill's series loads, the panels already drawn stay up (only the new one
+  // shows a loader). A city switch has no previous data for the new city
+  // (data[city] is undefined), so the whole chart area shows the loader then.
+  const { data, status, error, retry } = useTimeseries({ areas: city, parameters: sel }, { keepPrevious: true })
+  const s = data?.[city]
+  // Selected parameters whose series are here, in selection order. Memoised on
+  // the inputs so the Together chart's options keep their identity on hover.
+  const avail = useMemo(() => (s ? sel.filter((k) => s[k]) : []), [s, sel])
+  // A parameter the city simply has no data for (request done, series absent)
+  const missing = (k) => status === 'ready' && !!s && !s[k]
   const colorOf = (k) => slotColor(slotOf[k])
 
   const updateSel = (next) => setSelection((prev) => ({ sel: next, slotOf: assignSlots(prev.slotOf, next) }))
@@ -275,7 +315,7 @@ export default function PlotBuilder() {
   }
 
   /* ---- downloads ---- */
-  const cityName = DATA.cities[city].name
+  const cityName = CITIES[city].name
 
   const save = (filename, data) => {
     saveFile(filename, data)
@@ -285,14 +325,15 @@ export default function PlotBuilder() {
   // Raw monthly values for the selected years; units go into the column names
   // (stripped to letters and % so headers stay spreadsheet-friendly).
   const downloadCsv = () => {
-    const head = ['month', ...sel.map((k) => `${k}${P[k].unit ? '_' + P[k].unit.replace(/[^a-z%]/gi, '') : ''}`)]
+    if (!avail.length) return
+    const head = ['month', ...avail.map((k) => `${k}${P[k].unit ? '_' + P[k].unit.replace(/[^a-z%]/gi, '') : ''}`)]
     let csv = head.join(',') + '\n'
     for (let i = i0; i <= i1; i++)
       csv +=
         [
           M[i],
-          ...sel.map((k) => {
-            const v = ser(city, k)[i]
+          ...avail.map((k) => {
+            const v = s[k][i]
             return v == null ? '' : v
           }),
         ].join(',') + '\n'
@@ -348,9 +389,17 @@ export default function PlotBuilder() {
     cv.toBlob((b) => b && save(`${cityName}_chart.png`, b), 'image/png')
   }
 
+  // Nothing of this city loaded yet (first visit to the section, a city
+  // switch) or the request failed: one loader / error for the chart area.
+  const pendingAll = !avail.length && !sel.every(missing)
+  // Selected parameters still on their way (shown as loaders / a note)
+  const loadingKeys = sel.filter((k) => !s?.[k] && !missing(k))
+
   /* ---- readout ---- */
   let readout
-  if (view === 'season') {
+  if (pendingAll) {
+    readout = <ReadoutItem>{status === 'error' ? 'The data could not be loaded.' : 'Loading the data…'}</ReadoutItem>
+  } else if (view === 'season') {
     if (hover == null) {
       readout = (
         <>
@@ -364,8 +413,8 @@ export default function PlotBuilder() {
       readout = (
         <>
           <ReadoutWhen>{MON[m]}</ReadoutWhen>
-          {sel.map((k) => {
-            const a = ser(city, k), ly = yOf(lastIdx(a)), i = M.indexOf(`${ly}-${String(m + 1).padStart(2, '0')}`), cl = clim(a)[m]
+          {avail.map((k) => {
+            const a = s[k], ly = yOf(lastIdx(a)), i = M.indexOf(`${ly}-${String(m + 1).padStart(2, '0')}`), cl = clim(a)[m]
             return (
               <ReadoutItem key={k}>
                 <Swatch color={colorOf(k)} />
@@ -378,12 +427,12 @@ export default function PlotBuilder() {
     }
   } else {
     // Without a hover, show the latest month that every selected parameter has (capped to the range).
-    const i = hover ?? Math.min(i1, ...sel.map((k) => lastIdx(ser(city, k))))
+    const i = hover ?? Math.min(i1, ...avail.map((k) => lastIdx(s[k])))
     readout = (
       <>
         <ReadoutWhen>{mLabel(i)}</ReadoutWhen>
-        {sel.map((k) => {
-          const v = ser(city, k)[i]
+        {avail.map((k) => {
+          const v = s[k][i]
           return (
             <ReadoutItem key={k}>
               <Swatch color={colorOf(k)} />
@@ -403,16 +452,41 @@ export default function PlotBuilder() {
 
   /* ---- charts ---- */
   let panels
-  if (view === 'together') {
-    panels = <TogetherPanel city={city} selection={selection} i0={i0} i1={i1} smooth={smooth} hover={hover} onHover={setHover} />
-  } else if (view === 'season') {
-    panels = sel.map((k) => <SeasonPanel key={k} city={city} k={k} slot={slotOf[k]} y0={y0} y1={y1} hover={hover} onHover={setHover} />)
+  if (pendingAll) {
+    // Roughly the height of what it stands in for (one or two 180px charts with titles)
+    panels = (
+      <SectionLoader
+        label={`Loading ${cityName}'s data…`}
+        error={status === 'error' ? error : null}
+        onRetry={retry}
+        className={view === 'together' ? 'h-[340px]' : sel.length > 1 ? 'h-[420px]' : 'h-[205px]'}
+      />
+    )
+  } else if (view === 'together' && avail.length) {
+    panels = (
+      <>
+        <TogetherPanel keys={avail} s={s} slotOf={slotOf} i0={i0} i1={i1} smooth={smooth} hover={hover} onHover={setHover} />
+        {/* A just-added parameter joins the chart once its series is in */}
+        {loadingKeys.length > 0 && (
+          <p role="status" className="text-[13px] text-muted">
+            Loading {loadingKeys.map((k) => P[k].label).join(', ')}…
+          </p>
+        )}
+      </>
+    )
   } else {
-    panels = sel.map((k) => <TimePanel key={k} city={city} k={k} slot={slotOf[k]} i0={i0} i1={i1} smooth={smooth} hover={hover} onHover={setHover} />)
+    const Panel = view === 'season' ? SeasonPanel : TimePanel
+    panels = sel.map((k) =>
+      s?.[k] ? (
+        <Panel key={k} k={k} a={s[k]} slot={slotOf[k]} i0={i0} i1={i1} y0={y0} y1={y1} smooth={smooth} hover={hover} onHover={setHover} />
+      ) : (
+        <PendingPanel key={k} k={k} missing={missing(k)} />
+      ),
+    )
   }
 
   return (
-    <Card id="plot" aria-labelledby="plotT">
+    <Card id="plot" aria-labelledby="plotT" aria-busy={status === 'loading'}>
       <CardHead
         aside={
           // CardHead turns this div into a 6px-gap column, so the two buttons stack.

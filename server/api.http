@@ -116,6 +116,114 @@ GET {{baseUrl}}/api/v1/areas/jaisalmer/forecasts?parameters=ndvi&horizon=12&mode
 # no_gee_data until extracted).
 GET {{baseUrl}}/api/v1/areas/delhi/forecasts?horizon=6&models=gbm
 
+# ==================== Hazards ====================
+
+### Hazards
+# Hazard types (flood today) and what each provides: events, daily parameters,
+# observations, and the forecast with its danger classes, models and thresholds.
+# Expect 200.
+GET {{baseUrl}}/api/v1/hazards
+
+### Hazard
+# One hazard plus its dataset (tables and their columns, source datasets and
+# citations, notes) and the forecast model: thresholds, out-of-fold and held-out
+# test scores, threshold sweep, feature importance, which events trained and
+# tested it, and the check against the notebook. Expect 200.
+GET {{baseUrl}}/api/v1/hazards/flood
+
+### Hazard parameters
+# What can be plotted for a flood event: daily rainfall series (box average,
+# wettest cell, 3- and 7-day totals), the reported-flood-period flag, and the
+# soil moisture passes (kind "observation"). Labels, units, sources. Expect 200.
+GET {{baseUrl}}/api/v1/hazards/flood/parameters
+
+### Hazard parameter
+# One parameter, with the context columns that come with each observation
+# (track, phase, ...). Expect 200.
+GET {{baseUrl}}/api/v1/hazards/flood/parameters/soil_moisture
+
+### Hazard events
+# Every flood event: name, country, admin area, period, bbox [west, south, east,
+# north], center, cause, data coverage, and whether and how it has a forecast
+# (Nepal: excluded, not a rain flood). Expect 200 with 10 events.
+GET {{baseUrl}}/api/v1/hazards/flood/events
+
+### Hazard events (countries)
+# Filter by ISO country code or name, case-insensitive. Expect 200 with the two
+# Bihar events and Chattogram.
+GET {{baseUrl}}/api/v1/hazards/flood/events?country=IN,BD
+
+### Hazard events (bbox)
+# Events whose box overlaps west,south,east,north (degrees; west > east crosses
+# the antimeridian). Expect 200 with Pakistan, Nepal, Patna, Bhagalpur and
+# Chattogram.
+GET {{baseUrl}}/api/v1/hazards/flood/events?bbox=60,5,100,40
+
+### Hazard event
+# One event with notes, a summary (rain before and during the flood, soil
+# passes), attributes, sources (citations and source files) and links. Expect
+# 200.
+GET {{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur
+
+### Hazard events (with layers)
+# Every event with its map layers embedded (data[].layers); coverage.layers
+# lists the layer ids of each event ([] when none). Expect 200.
+GET {{baseUrl}}/api/v1/hazards/flood/events?include=layers
+
+### Hazard event (with layers)
+# One event plus its full layer objects in data.layers. Expect 200.
+GET {{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur?include=layers
+
+### Event timeseries (everything)
+# Every parameter: data.series holds the daily series aligned with data.times;
+# data.observations holds the soil moisture passes, each with its own times,
+# values and context. Expect 200.
+GET {{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur/timeseries
+
+### Event timeseries (rain and soil, dates)
+# Chosen parameters and an inclusive UTC date range (YYYY-MM-DD). The 3-day
+# total on the first day still counts the days before it. Expect 200 with 15
+# days.
+GET {{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur/timeseries?parameters=rain_box_mm,rain_box_3d_mm,in_flood_period,soil_moisture&from=2026-09-01&to=2026-09-15
+
+### Event forecast (test event)
+# Per day: each model's probability of the flood within the next 3 days, its
+# threshold and the danger class (probability >= threshold), the actual outcome,
+# the inputs, and the scores. A held-out test event, scored by the final model
+# (evaluation.role "test"). Expect 200.
+GET {{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur/forecast
+
+### Event forecast (training event, one model)
+# A training event is scored out-of-fold (evaluation.role "out_of_fold"; fold
+# and foldEvents say which cross-validation model held it out). One model, days
+# from 1 Jan. Expect 200.
+GET {{baseUrl}}/api/v1/hazards/flood/events/01_mozambique_limpopo/forecast?models=rain_soil&from=2026-01-01
+
+### Event forecast (excluded event)
+# Nepal is kept as data but left out of the model, as in the notebook (a glacier
+# collapse, not rain). Expect 200 with data.available false and
+# evaluation.reason.
+GET {{baseUrl}}/api/v1/hazards/flood/events/05_nepal_trishuli/forecast
+
+### Event layers
+# The event's map layers: today the reference water extent (water-reference)
+# of the notebook's Part A labels, with bounds [[south, west], [north, east]],
+# legend, stats (water km², % of known pixels, unknown %, inside the event
+# box), source and the image url. Expect 200 with meta.count 1. An event
+# without layers returns [].
+GET {{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur/layers
+
+### Event layer
+# One layer. data.url is the overlay PNG on this API (prefix the API origin);
+# its ?v= is the image hash. Expect 200.
+GET {{baseUrl}}/api/v1/hazards/flood/events/09_thailand_bangkok/layers/water-reference
+
+### Event layer image
+# The overlay PNG itself (Content-Type image/png, Cache-Control public,
+# max-age=86400, ETag). Transparent except water (#1a5cff at 80%). Expect 200.
+GET {{baseUrl}}/api/v1/hazards/flood/events/02_china_guangxi/layers/water-reference/image
+Accept: image/png
+
 # ==================== Basemap ====================
 
 ### Basemap
@@ -231,6 +339,51 @@ GET {{baseUrl}}/api/v1/areas/jaipur/forecasts?horizon=18
 # 502 model_failure; with one, 200 with data.source "snapshot" and
 # meta.fallback "model_failure". 200 live with a working module.
 GET {{baseUrl}}/api/v1/areas/jaipur/forecasts?horizon=18
+
+### Hazard: unknown hazard
+# Expect 404 not_found (details.valid lists the hazards).
+GET {{baseUrl}}/api/v1/hazards/volcano
+
+### Hazard: unknown event
+# Expect 404 not_found (details.hazard, details.eventId).
+GET {{baseUrl}}/api/v1/hazards/flood/events/99_atlantis
+
+### Hazard: unknown parameter
+# Expect 400 invalid_parameter (details.unknown, details.valid).
+GET {{baseUrl}}/api/v1/hazards/flood/events/02_china_guangxi/timeseries?parameters=rain_box_mm,ndvi
+
+### Hazard: bad date
+# Hazard series are daily. Expect 400 invalid_query (details.format = "YYYY-MM-
+# DD").
+GET {{baseUrl}}/api/v1/hazards/flood/events/02_china_guangxi/timeseries?from=2026-07
+
+### Hazard: unsupported interval
+# Expect 400 unsupported_interval (details.supported = ["daily"]).
+GET {{baseUrl}}/api/v1/hazards/flood/events/02_china_guangxi/timeseries?interval=monthly
+
+### Hazard: bad bbox
+# Expect 400 invalid_query (details.format = "west,south,east,north").
+GET {{baseUrl}}/api/v1/hazards/flood/events?bbox=60,5,100
+
+### Hazard: unknown model
+# Expect 400 invalid_query (details.allowed = ["rain", "rain_soil"]).
+GET {{baseUrl}}/api/v1/hazards/flood/events/02_china_guangxi/forecast?models=rain,xgboost
+
+### Hazard: forecast not built
+# Only when server/data/hazards/flood/model/forecast.json is missing (the model
+# has not been built: python -m forecaster.hazards build flood): 503
+# forecast_unavailable with details.reason "no_model". Expect 200 with the
+# committed data.
+GET {{baseUrl}}/api/v1/hazards/flood/events/02_china_guangxi/forecast
+
+### Hazard: unknown layer
+# Expect 404 not_found (details.layerId, details.valid = ["water-reference"]).
+GET {{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur/layers/depth
+
+### Hazard: unknown include
+# Events offer include=layers only. Expect 400 invalid_query (details.allowed =
+# ["layers"]).
+GET {{baseUrl}}/api/v1/hazards/flood/events?include=boundary
 
 ### Wrong method
 # Only GET (and HEAD) are supported. Expect 405 method_not_allowed with an Allow header.

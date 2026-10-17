@@ -19,6 +19,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const { DEFAULT_DATA_DIR } = require('../providers/files')
+const { parseCsv } = require('../util/csv')
 
 const DEFAULT_TABLES_DIR = path.join(DEFAULT_DATA_DIR, 'gee')
 const DATE_COLUMN = 'date'
@@ -28,34 +29,6 @@ const SAFE_ID = /^[A-Za-z0-9_-]+$/
 const tableFile = (dir, areaId) => {
   if (!SAFE_ID.test(areaId)) throw new Error(`Unsafe area id for a feature table: ${areaId}`)
   return path.join(dir, `${areaId}.features.csv`)
-}
-
-// RFC 4180 CSV -> array of string arrays. pandas never quotes these numeric
-// tables, but a quoted field must not split the row if it ever does.
-function parseCsv(text) {
-  const rows = []
-  let row = []
-  let field = ''
-  let quoted = false
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i]
-    if (quoted) {
-      if (ch === '"' && text[i + 1] === '"') { field += '"'; i++ }
-      else if (ch === '"') quoted = false
-      else field += ch
-    } else if (ch === '"') quoted = true
-    else if (ch === ',') { row.push(field); field = '' }
-    else if (ch === '\n' || ch === '\r') {
-      if (ch === '\r' && text[i + 1] === '\n') i++
-      row.push(field)
-      if (row.length > 1 || row[0] !== '') rows.push(row)
-      row = []
-      field = ''
-    } else field += ch
-  }
-  row.push(field)
-  if (row.length > 1 || row[0] !== '') rows.push(row)
-  return rows
 }
 
 // A cell as JSON: a number, or null for an empty / NaN / inf cell (pandas

@@ -1,0 +1,11 @@
+# Hazards environment (server/ml/.venv-hazards): the flood import and model
+# (python -m forecaster.hazards). Separate from requirements.txt because the
+# flood model needs scikit-learn <= 1.8 to reproduce flood_disaster.ipynb:
+# 1.9 changed how random forests draw bootstrap samples with class weights,
+# while the NDVI models stay on 1.9.1. See README.md, "Hazards".
+# 1.8.0 released 2025-12-10 (the last release before 1.9.0)
+scikit-learn==1.8.0
+pandas==3.0.6
+numpy==2.5.3
+# Reads the rainfall GeoTIFFs for the event bboxes; 1.5.2 released 2026-09-30
+rasterio==1.5.2

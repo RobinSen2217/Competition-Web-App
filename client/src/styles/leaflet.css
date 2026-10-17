@@ -1,7 +1,7 @@
 /*
   Overrides for elements that Leaflet creates itself, so they can't take
   Tailwind classes. Imported right after leaflet/dist/leaflet.css (see
-  main.jsx) and unlayered like it, so these win over Leaflet's defaults.
+  components/map/MapExplorer.jsx, so both load with the map's lazy chunk) and unlayered like it, so these win over Leaflet's defaults.
 */
 .leaflet-container {
   font-family: var(--f-body);

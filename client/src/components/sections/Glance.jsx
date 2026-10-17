@@ -1,11 +1,13 @@
 import { useMemo } from 'react'
-import { DATA, M, ser } from '../../lib/data'
+import { CITIES, M, useTimeseries } from '../../lib/store'
 import { MON, mLabel, mOf, yOf } from '../../lib/months'
 import { clim, lastIdx, mean, ndviStatus } from '../../lib/stats'
 import { css } from '../../lib/theme'
 import { useApp } from '../../state/appContext'
 import useThemeVersion from '../../hooks/useThemeVersion'
 import Sparkline from '../common/Sparkline'
+import { SectionLoader, Skeleton } from '../common/SectionLoader'
+import { cx } from '../../styles/classes'
 import { Card, CardHead, Chip, Kicker, Lede } from '../ui'
 
 // "At a glance": four headline cards for the selected city (greenness, monsoon
@@ -15,7 +17,15 @@ import { Card, CardHead, Chip, Kicker, Lede } from '../ui'
 // Jun, Jul, Aug, Sep as 0-based month numbers: the Indian summer monsoon.
 const MONSOON = [5, 6, 7, 8]
 
-// Index into DATA.months for a given year and 0-based month (-1 if outside the data).
+// The series the four cards draw; only these are fetched for the city.
+const GLANCE_PARAMS = ['ndvi', 'rain', 'tair', 'sm_top']
+
+// Height of the card grid, so the loader takes the same room (no jump when the
+// numbers arrive), measured: one row of four cards, two rows of two, or four
+// stacked on phones. The breakpoints are where the 180px-min grid rewraps.
+const bodyH = 'h-[223px] max-[848px]:h-[480px] max-[464px]:h-[886px]'
+
+// Index into M for a given year and 0-based month (-1 if outside the data).
 const idxOf = (y, m) => M.indexOf(`${y}-${String(m + 1).padStart(2, '0')}`)
 
 // Sparkline size inside a glance card.
@@ -38,18 +48,25 @@ function GlanceCard({ lab, big, unit, chip, txt, children }) {
 }
 
 export default function Glance() {
-  const { city: c } = useApp()
+  const { city } = useApp()
+  // keepPrevious: on a city switch the previous city's cards stay (dimmed)
+  // until the new numbers are in, instead of blinking to a loader.
+  const { data, status, error, retry, stale } = useTimeseries({ areas: city, parameters: GLANCE_PARAMS }, { keepPrevious: true })
+  // The city the shown numbers belong to (the previous one while stale)
+  const c = data ? Object.keys(data)[0] : city
+  const cs = data?.[c] // { ndvi, rain, tair, sm_top }: arrays aligned with M
   // Re-render on theme change so the sparkline colours read via css() update.
   useThemeVersion()
 
-  // All numbers depend only on the city, so they are recomputed only when it changes.
+  // All numbers depend only on the loaded series, so they are recomputed only when the data changes.
   const g = useMemo(() => {
-    const nd = ndviStatus(c)
+    if (!cs) return null
+    const nd = ndviStatus(cs.ndvi)
 
     // Rainfall: this year's monsoon so far against the normal total for the same
     // months. Before June there is no monsoon yet this year, so fall back to the
     // whole of last year's monsoon (Jun–Sep). Missing months count as 0 mm.
-    const rain = ser(c, 'rain'), lr = lastIdx(rain), yr = yOf(lr), lastM = mOf(lr)
+    const rain = cs.rain, lr = lastIdx(rain), yr = yOf(lr), lastM = mOf(lr)
     const monsoonMs = MONSOON.filter((m) => m <= lastM)
     const cl = clim(rain)
     let rNow, rNorm, rLab
@@ -67,30 +84,67 @@ export default function Glance() {
 
     // Air temperature: mean of the latest 12 months against the fixed 2010–2019
     // baseline. A full year is used so the season does not bias the comparison.
-    const t = ser(c, 'tair'), lt = lastIdx(t)
+    const t = cs.tair, lt = lastIdx(t)
     const t12 = mean(t.slice(lt - 11, lt + 1))
     const base = mean(t.filter((v, i) => yOf(i) <= 2019))
     const td = t12 - base
 
     // Soil moisture: latest month against that calendar month's climatology,
     // in percentage points of saturation.
-    const sm = ser(c, 'sm_top'), ls = lastIdx(sm), smc = clim(sm), smd = sm[ls] - smc[mOf(ls)]
+    const sm = cs.sm_top, ls = lastIdx(sm), smc = clim(sm), smd = sm[ls] - smc[mOf(ls)]
 
     return { nd, rain, rNow, rNorm, rLab, rd, t, td, base, sm, ls, smc, smd }
-  }, [c])
+  }, [cs])
+
+  // First load (or a failed one): the card's frame with the loader in place
+  // of the four cards. The lede's month needs the data, so it waits too.
+  if (!g) {
+    return (
+      <Card id="glance" aria-labelledby="glanceT" aria-busy={status === 'loading'}>
+        <CardHead>
+          <Kicker id="glanceKick">{CITIES[city].name} right now</Kicker>
+          <h2 id="glanceT">How is the city doing?</h2>
+          {/* Same sentence as when loaded, with a placeholder for the month, so
+              the lede wraps the same and the card does not jump */}
+          <Lede id="glanceLede">
+            Latest satellite month:{' '}
+            <span className="inline-block w-[72px] align-middle">
+              <Skeleton animate={status === 'loading'} className="h-[14px] rounded-full" />
+            </span>
+            . Each card compares with the usual value for that time of year.
+          </Lede>
+        </CardHead>
+        <SectionLoader
+          label={`Loading ${CITIES[city].name}'s latest month…`}
+          error={status === 'error' ? error : null}
+          onRetry={retry}
+          className={bodyH}
+        />
+      </Card>
+    )
+  }
 
   const { nd, rain, rNow, rNorm, rLab, rd, t, td, base, sm, ls, smc, smd } = g
 
   return (
-    <Card id="glance" aria-labelledby="glanceT">
+    <Card id="glance" aria-labelledby="glanceT" aria-busy={stale}>
       <CardHead>
-        <Kicker id="glanceKick">{DATA.cities[c].name} right now</Kicker>
+        <Kicker id="glanceKick">{CITIES[c].name} right now</Kicker>
         <h2 id="glanceT">How is the city doing?</h2>
         <Lede id="glanceLede">
           Latest satellite month: {mLabel(nd.li)}. Each card compares with the usual value for that time of year.
         </Lede>
       </CardHead>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-3" id="glanceCards">
+      {stale && (
+        <span role="status" className="sr-only">
+          Loading {CITIES[city].name}…
+        </span>
+      )}
+      {/* Dimmed while the next city's numbers load */}
+      <div
+        className={cx('grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-3 transition-opacity duration-200', stale && 'opacity-55')}
+        id="glanceCards"
+      >
         <GlanceCard
           lab="Vegetation greenness"
           big={nd.v.toFixed(2)}
@@ -98,7 +152,7 @@ export default function Glance() {
           chip={nd.chip}
           txt={`${Math.abs(nd.d).toFixed(0)}% ${nd.d >= 0 ? 'above' : 'below'} a usual ${MON[mOf(nd.li)]}.`}
         >
-          <Sparkline className={sparkCls} data={ser(c, 'ndvi')} color={css('--s1')} />
+          <Sparkline className={sparkCls} data={cs.ndvi} color={css('--s1')} />
         </GlanceCard>
         {/* Rainfall swings a lot year to year, so it uses a wider ±10% "normal" band */}
         <GlanceCard

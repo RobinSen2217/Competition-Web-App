@@ -7,6 +7,9 @@ import VegetationPage from './pages/VegetationPage'
 import DisasterPage from './pages/DisasterPage'
 import FloodPage from './pages/FloodPage'
 import useModuleTheme, { sectionOf } from './hooks/useModuleTheme'
+import ErrorBoundary from './components/common/ErrorBoundary'
+import { SectionLoader } from './components/common/SectionLoader'
+import { isChunkError, reloadPage } from './lib/chunkError'
 
 // Pages under one nav bar:
 //   /                 vegetation explorer
@@ -81,7 +84,13 @@ function Layout() {
           // At rest framer-motion sets transform: none, so nothing inside (the
           // Leaflet map, sticky elements) sits under a transformed ancestor.
         >
-          {outlet}
+          {/* A page that fails to render shows an error card under a working
+              nav; moving to another page (resetKey) clears it. Sections have
+              their own boundaries (LazySection), so this is the fallback for
+              the parts outside them (hero, text sections). */}
+          <ErrorBoundary resetKey={pathname} fallback={PageError}>
+            {outlet}
+          </ErrorBoundary>
         </motion.div>
       </AnimatePresence>
     </>
@@ -100,4 +109,14 @@ function ScrollToTop({ section }) {
     if (!hash && sameSection) window.scrollTo(0, 0)
   }, [pathname, hash, section])
   return null
+}
+
+// Error card in place of a page that failed to render. "Try again" renders it
+// again; if the cause is a missing code chunk (redeploy), it reloads instead.
+function PageError({ error, reset }) {
+  return (
+    <main className="mx-auto flex max-w-[1180px] flex-col px-5 pt-7 pb-16">
+      <SectionLoader error={error} onRetry={() => (isChunkError(error) ? reloadPage() : reset())} className="min-h-[50vh]" />
+    </main>
+  )
 }

@@ -1,10 +1,12 @@
 import { useMemo } from 'react'
-import { DATA, N, ser } from '../../lib/data'
+import { CITIES, N, useTimeseries } from '../../lib/store'
 import { yOf } from '../../lib/months'
 import { mean, anom, roll, ols, corr } from '../../lib/stats'
 import { css } from '../../lib/theme'
 import { useApp } from '../../state/appContext'
 import useThemeVersion from '../../hooks/useThemeVersion'
+import { SectionLoader } from '../common/SectionLoader'
+import { cx } from '../../styles/classes'
 import { Card, CardHead, Kicker, Lede } from '../ui'
 
 /*
@@ -23,18 +25,26 @@ const DRIVERS = [
   ['rh', 'Humidity'],
 ]
 
+// NDVI plus every driver: the only series this section fetches.
+const KEYS = ['ndvi', ...DRIVERS.map(([k]) => k)]
+
+// Height of the bars + story block (measured; side by side, then stacked), so
+// the loader takes the same room.
+const bodyH = 'h-[319px] max-[901px]:h-[634px] max-[521px]:h-[927px]'
+
 // Leftover trend (NDVI per decade) above which we call it real land change
 // rather than noise.
 const LAND_SIG = 0.004
 
-function analyse(c) {
-  const nd = anom(ser(c, 'ndvi'))
+// `s` holds the city's series ({ ndvi, rain, ... }, aligned with M).
+function analyse(s) {
+  const nd = anom(s.ndvi)
 
   // For each driver, find the delay (0–3 months) at which its anomalies
   // correlate best with NDVI anomalies. Rain is smoothed over 2 months first
   // because a single wet month rarely shows up in greenness on its own.
   const res = DRIVERS.map(([k, lab]) => {
-    const a = anom(k === 'rain' ? roll(ser(c, k), 2) : ser(c, k))
+    const a = anom(k === 'rain' ? roll(s[k], 2) : s[k])
     let best = { r: 0, lag: 0 }
     for (let lag = 0; lag <= 3; lag++) {
       const xs = [], ys = []
@@ -71,7 +81,7 @@ function analyse(c) {
   const leftTrend = resid.b[1] * 120
 
   // Plain average NDVI in a fixed early and late window
-  const nd0 = ser(c, 'ndvi')
+  const nd0 = s.ndvi
   const early = mean(nd0.filter((v, i) => yOf(i) >= 2010 && yOf(i) <= 2014))
   const late = mean(nd0.filter((v, i) => yOf(i) >= 2021 && yOf(i) <= 2025))
 
@@ -86,27 +96,50 @@ const signed = (v, dec) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(dec)
 
 export default function Why() {
   const { city } = useApp()
+  // keepPrevious: on a city switch the previous city's analysis stays (dimmed)
+  // until the new series are in, instead of blinking to a loader.
+  const { data, status, error, retry, stale } = useTimeseries({ areas: city, parameters: KEYS }, { keepPrevious: true })
+  // The city the shown analysis belongs to (the previous one while stale)
+  const c = data ? Object.keys(data)[0] : city
   // Bar colours are read with css() during render, so re-render on theme change
   useThemeVersion()
 
   // 16 lagged correlations (4 drivers × 4 lags) and two regressions. Cheap, but the
-  // component also re-renders on theme changes, so only recompute when the city changes.
-  const { res, r2, leftTrend, early, late } = useMemo(() => analyse(city), [city])
-
-  const d = DATA.cities[city]
-  const top = res[0]
-  const wx = Math.round(r2 * 100)
-  const landSig = Math.abs(leftTrend) > LAND_SIG
+  // component also re-renders on theme changes, so only recompute when the data changes.
+  const an = useMemo(() => data && analyse(data[c]), [data, c])
 
   return (
-    <Card id="why" aria-labelledby="whyT">
+    <Card id="why" aria-labelledby="whyT" aria-busy={status === 'loading'}>
       <CardHead>
         <Kicker>What drives the change</Kicker>
         <h2 id="whyT">Why is greenness changing?</h2>
         <Lede>We remove the normal seasonal cycle, then test how closely month-to-month greenness follows each weather factor, allowing a delay of up to three months. What weather cannot explain is a hint of land change: irrigation, new parks, or building over green land.</Lede>
       </CardHead>
+      {an ? (
+        <WhyBody {...an} name={CITIES[c].name} stale={stale} loadingName={CITIES[city].name} />
+      ) : (
+        <SectionLoader label={`Loading ${CITIES[city].name}'s weather links…`} error={status === 'error' ? error : null} onRetry={retry} className={bodyH} />
+      )}
+    </Card>
+  )
+}
+
+// Bars and story for one city's analysis. `stale`: these are the previous
+// city's results while `loadingName`'s series load (dimmed, announced).
+function WhyBody({ res, r2, leftTrend, early, late, name, stale, loadingName }) {
+  const top = res[0]
+  const wx = Math.round(r2 * 100)
+  const landSig = Math.abs(leftTrend) > LAND_SIG
+
+  return (
+    <>
+      {stale && (
+        <span role="status" className="sr-only">
+          Loading {loadingName}…
+        </span>
+      )}
       {/* Bars beside the story; stacked on narrow screens */}
-      <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-6 max-[901px]:grid-cols-[minmax(0,1fr)]">
+      <div className={cx('grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-6 transition-opacity duration-200 max-[901px]:grid-cols-[minmax(0,1fr)]', stale && 'opacity-55')}>
         <div className="flex flex-col gap-3" id="drivers">
           {/* Column headings. Unlike the bar rows, this keeps its columns on small screens. */}
           <div className="grid grid-cols-[150px_1fr_64px] gap-3 text-[13px] text-muted">
@@ -131,7 +164,7 @@ export default function Why() {
           <p className="text-[13px] text-muted">Link is the correlation (−1 to +1) between this factor's unusual months and greenness's unusual months, at the best delay. Above about 0.3 is a clear link at this sample size. Orange bars move in the opposite direction.</p>
         </div>
         <div className="flex flex-col gap-3 rounded-2xl bg-surface2 p-[18px]" id="whyStory">
-          <Kicker>{d.name} in short</Kicker>
+          <Kicker>{name} in short</Kicker>
           <p className="font-display text-[22px] leading-[1.3]">
             {/* |r| ≥ 0.3 is roughly where a link is clear at this sample size */}
             {Math.abs(top.r) >= 0.3 ? (
@@ -155,6 +188,6 @@ export default function Why() {
           <p className="text-[15px] text-muted">These are statistical links, not proof of cause. Confirming land change needs land-cover maps, which are part of the next stage.</p>
         </div>
       </div>
-    </Card>
+    </>
   )
 }

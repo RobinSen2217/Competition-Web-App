@@ -1,0 +1,4 @@
+file,date,utc_time,local_time,track,direction,frames,phase,in_reported_flood_period,cells_in_box,cells_with_soil_moisture,coverage_pct,mean_sm,median_sm,p10_sm,p90_sm,mean_sm_recommended_only,cells_recommended,mean_uncertainty,phase_reason
+2026-06-27_T025A_before_soil_moisture.tif,2026-06-27,2026-06-27 22:06,2026-06-28 06:06,25,ASCENDING,13,before,false,63865,58422,91.5,0.3584,0.3527,0.3067,0.4166,0.3731,18496,0.0405,before the Typhoon Maysak rain of 4-6 Jul
+2026-06-29_T047D_before_soil_moisture.tif,2026-06-29,2026-06-29 11:20,2026-06-29 19:20,47,DESCENDING,77,before,false,63865,58429,91.5,0.3464,0.3415,0.2954,0.4035,0.3557,18416,0.0405,before the Typhoon Maysak rain of 4-6 Jul
+2026-07-09_T025A_receding_soil_moisture.tif,2026-07-09,2026-07-09 22:06,2026-07-10 06:06,25,ASCENDING,13,receding,false,63865,58421,91.5,0.3617,0.3603,0.3125,0.4147,0.3666,11470,0.0406,Nanning vice mayor said floodwaters were receding (reported 9 Jul)
