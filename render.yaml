@@ -1,0 +1,31 @@
+# Render blueprint for the Express API (free plan).
+# Render: New > Blueprint > pick this repo > Apply. It creates one web service.
+#
+# The free plan sleeps after 15 minutes without traffic and takes about a minute
+# to wake. The website copes: it waits ~4 s for the API, then uses its bundled
+# copy of the same data. The API runs in snapshot mode, serving the forecasts
+# that the monthly GitHub Actions job (.github/workflows/gee-refresh.yml)
+# computes and commits, so this service needs no Python or Earth Engine login.
+services:
+  - type: web
+    name: competition-web-app-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    # Redeploy only when the server (code or data) changes, not for client-only pushes
+    buildFilter:
+      paths:
+        - server/**
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Serve saved forecasts only; the heavy model runs happen in GitHub Actions
+      - key: FORECAST_MODE
+        value: snapshot
+      # Only the website may call the API from a browser (comma-separated list)
+      - key: CORS_ORIGINS
+        value: https://competition-web-app-black.vercel.app

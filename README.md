@@ -26,10 +26,21 @@ The client's dev server proxies `/api` to the Express server on port 5050.
 
 ## Deployment
 
-The client deploys to Vercel from this repo (project Root Directory: `client`,
-preset: Vite; `client/vercel.json` only adds caching headers). Every push to
-`main` redeploys.
+| Part | Where | How it updates |
+| --- | --- | --- |
+| Website (`client/`) | **Vercel** (Root Directory `client`, preset Vite) | every push to `main` |
+| API (`server/`) | **Render**, free plan, from `render.yaml` (New > Blueprint) | every push that changes `server/` |
+| Monthly data + forecasts | **GitHub Actions**, `.github/workflows/gee-refresh.yml` | 5th of each month, or Actions > Run workflow |
 
-The Express API is not hosted yet (planned: an Oracle Cloud Always Free server).
-Until then the website falls back to the copy of the data bundled into the
-client. Once the API is hosted, set `VITE_API_URL` in Vercel to its address.
+- The API runs in `FORECAST_MODE=snapshot`: it serves the data files and the
+  forecasts that the monthly job computed and committed, so it needs no Python
+  or Earth Engine login. Render's free plan sleeps after 15 minutes idle; the
+  website then uses its bundled copy of the same data until the API wakes.
+- The monthly job runs the team's GEE notebook pipeline for every area (Earth
+  Engine extraction, physics features, models, 12-month forecast) and commits
+  the results, which redeploys both the website and the API. It needs an Earth
+  Engine login as a repository secret: `GEE_CREDENTIALS` (personal login) or
+  `GEE_SERVICE_ACCOUNT_KEY` (service-account key JSON), plus optionally the
+  repository variable `GEE_PROJECT`. Without one it does nothing.
+- The website uses the API when `VITE_API_URL` is set in Vercel to the Render
+  URL (then redeploy); otherwise it uses the bundled data.
