@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { DATA, ser } from '../../lib/data'
+import { CITIES, useTimeseries } from '../../lib/store'
 import { MON, mLabel, mOf, yOf } from '../../lib/months'
 import { P, PARAMS, fmtv, unitS } from '../../lib/params'
 import { anom, clim, lastIdx, ols } from '../../lib/stats'
@@ -8,6 +8,8 @@ import { css } from '../../lib/theme'
 import { useApp } from '../../state/appContext'
 import useThemeVersion from '../../hooks/useThemeVersion'
 import Sparkline from '../common/Sparkline'
+import { SectionLoader } from '../common/SectionLoader'
+import { cx } from '../../styles/classes'
 import { REVEAL_VIEWPORT, fadeUp, stagger } from '../common/motionPresets'
 import { Card, CardHead, Chip, Group, GroupTitle, Kicker, Lede } from '../ui'
 
@@ -22,6 +24,14 @@ const GROUPS = [
   { name: 'Water', color: '--s2' },
   { name: 'Weather and air', color: '--s3' },
 ]
+
+// Every measure the cards show (all of PARAMS); fetched for the selected city only.
+const KEYS = PARAMS.map((p) => p.k)
+
+// Height of the three card groups (measured at 1280, 700 and 390px wide), so
+// the loader takes about the same room and the page doesn't jump when the
+// numbers arrive.
+const bodyH = 'h-[1066px] max-[848px]:h-[1901px] max-[520px]:h-[4232px]'
 
 // Same cut-off year as clim(): the last complete calendar year of the data.
 const CLIM_TO = 2025
@@ -45,9 +55,10 @@ const sd = (a) => {
   return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / (a.length - 1))
 }
 
-// All statistics for one measure. Returns { empty: true } for an all-null series.
-function analyse(c, k) {
-  const a = ser(c, k) || []
+// All statistics for one measure's series (aligned with M; undefined when the
+// city has none). Returns { empty: true } for a missing or all-null series.
+function analyse(series) {
+  const a = series || []
   const li = lastIdx(a)
   if (li < 0) return { empty: true }
 
@@ -123,25 +134,43 @@ function ParamCard({ k, st, color }) {
 }
 
 export default function Features() {
-  const { city: c } = useApp()
+  const { city } = useApp()
+  // keepPrevious: on a city switch the previous city's cards stay (dimmed)
+  // until the new series are in, instead of blinking to a loader.
+  const { data, status, error, retry, stale } = useTimeseries({ areas: city, parameters: KEYS }, { keepPrevious: true })
+  // The city the shown numbers belong to (the previous one while stale)
+  const c = data ? Object.keys(data)[0] : city
   // Re-render on theme change so the sparkline colours read via css() update.
   useThemeVersion()
 
-  // Every statistic depends only on the city.
-  const stats = useMemo(() => Object.fromEntries(PARAMS.map((p) => [p.k, analyse(c, p.k)])), [c])
+  // Every statistic depends only on the loaded series.
+  const stats = useMemo(() => data && Object.fromEntries(PARAMS.map((p) => [p.k, analyse(data[c]?.[p.k])])), [data, c])
 
   return (
-    <Card id="features" aria-labelledby="featuresT">
+    <Card id="features" aria-labelledby="featuresT" aria-busy={status === 'loading'}>
       <CardHead>
-        <Kicker>{DATA.cities[c].name} in numbers</Kicker>
+        <Kicker>{CITIES[c].name} in numbers</Kicker>
         <h2 id="featuresT">Every measure at a glance</h2>
         <Lede>
           Each card shows the latest month, whether it is higher or lower than usual for that time of year, the
           long-term trend per decade, and a line of the last 3 years.
         </Lede>
       </CardHead>
-      {GROUPS.map((g) => (
-        <Group key={g.name} role="group" aria-label={g.name}>
+      {!stats && (
+        <SectionLoader
+          label={`Loading ${CITIES[city].name}'s measures…`}
+          error={status === 'error' ? error : null}
+          onRetry={retry}
+          className={bodyH}
+        />
+      )}
+      {stale && (
+        <span role="status" className="sr-only">
+          Loading {CITIES[city].name}…
+        </span>
+      )}
+      {stats && GROUPS.map((g) => (
+        <Group key={g.name} role="group" aria-label={g.name} className={cx('transition-opacity duration-200', stale && 'opacity-55')}>
           <GroupTitle>{g.name}</GroupTitle>
           {/* The cards of a group fade up one after another (35 ms apart) when
               the grid first scrolls into view; each card takes its timing

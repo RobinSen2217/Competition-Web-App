@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { DATA, CITY_IDS, ser } from '../../lib/data'
+import { CITIES, CITY_IDS, useTimeseries } from '../../lib/store'
 import { yOf } from '../../lib/months'
 import { P, fmtv, unitS } from '../../lib/params'
 import { mean } from '../../lib/stats'
 import { useApp } from '../../state/appContext'
+import { SectionLoader } from '../common/SectionLoader'
 import { Card, CardHead, Kicker, Lede, Select } from '../ui'
 import { cx } from '../../styles/classes'
 
@@ -30,6 +31,10 @@ function fiveYearAvg(a, k, y0) {
   return mean(v)
 }
 
+// Height of the six rows plus the scale line (measured, same at every width),
+// so the loader takes the same room.
+const bodyH = 'h-[412px]'
+
 const signed = (v, dec) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(dec)
 
 // One clickable city row. The reset at the start stands in for the original's
@@ -48,21 +53,27 @@ const dotCls = 'absolute top-1.5 -ml-[7px] box-border size-3.5 rounded-full bord
 
 export default function Compare() {
   const { city, setCity } = useApp()
-  const [k, setK] = useState('ndvi')
+  const [sel, setSel] = useState('ndvi')
+  // One parameter for every city. keepPrevious: after picking another
+  // parameter the current rows stay (dimmed) until its series are in.
+  const { data, status, error, retry, stale } = useTimeseries({ areas: '*', parameters: [sel] }, { keepPrevious: true })
+  // The parameter the shown rows belong to: the previous one while stale.
+  // Read from the data itself (the first city that has the series).
+  const k = (data && Object.values(data).map((o) => Object.keys(o)[0]).find(Boolean)) || sel
 
-  const { rows, lo, hi, pad } = useMemo(() => {
+  const view = useMemo(() => {
+    if (!data) return null
+    // A city without this parameter gets an empty series (no dots)
     const rows = CITY_IDS.map((c) => {
-      const a = ser(c, k)
-      return { c, name: DATA.cities[c].name, e: fiveYearAvg(a, k, 2010), l: fiveYearAvg(a, k, 2021) }
+      const a = data[c]?.[k] || []
+      return { c, name: CITIES[c].name, e: fiveYearAvg(a, k, 2010), l: fiveYearAvg(a, k, 2021) }
     })
     // Shared scale across all cities, with 8% padding so dots don't sit on the edge
     const all = rows.flatMap((r) => [r.e, r.l]).filter((v) => v != null)
     const lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * 0.08 || 0.01
     return { rows, lo, hi, pad }
-  }, [k])
+  }, [data, k])
 
-  // Value -> % position along the track
-  const X = (v) => ((v - (lo - pad)) / (hi + pad - (lo - pad))) * 100
 
   const open = (c) => {
     // Render the new city before scrolling, as the original did, so the scroll
@@ -72,10 +83,10 @@ export default function Compare() {
   }
 
   return (
-    <Card id="compare" aria-labelledby="cmpT">
+    <Card id="compare" aria-labelledby="cmpT" aria-busy={status === 'loading'}>
       <CardHead
         aside={
-          <Select id="cmpParam" aria-label="Parameter to compare" value={k} onChange={(e) => setK(e.target.value)}>
+          <Select id="cmpParam" aria-label="Parameter to compare" value={sel} onChange={(e) => setSel(e.target.value)}>
             {CMP_KEYS.map((key) => (
               <option key={key} value={key}>{P[key].label}{P[key].sum ? ' (yearly total)' : ''}</option>
             ))}
@@ -86,7 +97,29 @@ export default function Compare() {
         <h2 id="cmpT">How the cities compare</h2>
         <Lede>Average of 2010–2014 (hollow dot) against 2021–2025 (filled dot). Tap a city to open it.</Lede>
       </CardHead>
-      <div className="flex flex-col gap-1.5" id="dumb">
+      {view ? (
+        <Dumbbells {...view} k={k} city={city} stale={stale} onOpen={open} />
+      ) : (
+        <SectionLoader label="Loading every city's series…" error={status === 'error' ? error : null} onRetry={retry} className={bodyH} />
+      )}
+    </Card>
+  )
+}
+
+// The city rows and scale for parameter `k`. `stale`: these rows belong to the
+// previously chosen parameter while the new one loads (dimmed, announced).
+function Dumbbells({ rows, lo, hi, pad, k, city, stale, onOpen }) {
+  // Value -> % position along the track
+  const X = (v) => ((v - (lo - pad)) / (hi + pad - (lo - pad))) * 100
+
+  return (
+    <>
+      {stale && (
+        <span role="status" className="sr-only">
+          Loading the new parameter…
+        </span>
+      )}
+      <div className={cx('flex flex-col gap-1.5 transition-opacity duration-200', stale && 'opacity-55')} id="dumb">
         {rows.map((r) => {
           const d = r.l - r.e
           // Relative change only where a percentage is meaningful (totals and NDVI),
@@ -101,7 +134,7 @@ export default function Compare() {
               data-c={r.c}
               aria-current={r.c === city}
               title={`${r.name}: ${fmtv(k, r.e)} → ${fmtv(k, r.l)}${unitS(k)}`}
-              onClick={() => open(r.c)}
+              onClick={() => onOpen(r.c)}
             >
               <b>{r.name}</b>
               {/* Track: a thin grey baseline (::before), the coloured span between the two averages, then the dots */}
@@ -124,6 +157,6 @@ export default function Compare() {
           <span className="text-right">change</span>
         </div>
       </div>
-    </Card>
+    </>
   )
 }

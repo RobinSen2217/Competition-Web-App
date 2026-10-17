@@ -1,0 +1,45 @@
+{
+  "_about": "Curated facts about the flood events that the extracted files do not carry (country, admin area, cause). Read by `python -m forecaster.hazards import flood`; events missing here are still imported, with these fields null. Causes paraphrase the event READMEs (title, reported period and 'Things to know'); rainDriven=false marks events the rainfall/soil-moisture model does not apply to.",
+  "events": {
+    "01_mozambique_limpopo": {
+      "country": { "code": "MZ", "name": "Mozambique" }, "admin": "Gaza", "place": "Chokwe to Xai-Xai",
+      "cause": "Lower Limpopo river flood; much of the water came from rain upstream, outside the box", "rainDriven": true
+    },
+    "02_china_guangxi": {
+      "country": { "code": "CN", "name": "China" }, "admin": "Guangxi", "place": "Hengzhou, Nanning",
+      "cause": "Typhoon Maysak heavy rain (4-6 Jul) and the Liulan reservoir breach (6 Jul)", "rainDriven": true
+    },
+    "03_pakistan_punjab": {
+      "country": { "code": "PK", "name": "Pakistan" }, "admin": "Punjab", "place": "Muridke - Narowal",
+      "cause": "Ravi / Chenab monsoon river floods; much of the water came from rain upstream, outside the box", "rainDriven": true
+    },
+    "04_usa_indiana": {
+      "country": { "code": "US", "name": "United States" }, "admin": "Indiana", "place": "Indianapolis - Anderson",
+      "cause": "Heavy rain from 11 Aug; White River above flood stage 12-18 Aug", "rainDriven": true
+    },
+    "05_nepal_trishuli": {
+      "country": { "code": "NP", "name": "Nepal" }, "admin": "Bagmati", "place": "Langtang / Trishuli",
+      "cause": "Langtang glacier/rock collapse on 26 Aug and a debris flood down the Trishuli, not rain", "rainDriven": false
+    },
+    "06_india_bihar_patna": {
+      "country": { "code": "IN", "name": "India" }, "admin": "Bihar", "place": "Patna",
+      "cause": "Ganga river flood (above the danger mark at Patna); much of the water came from rain upstream, outside the box", "rainDriven": true
+    },
+    "07_india_bihar_bhagalpur": {
+      "country": { "code": "IN", "name": "India" }, "admin": "Bihar", "place": "Sultanganj - Bhagalpur",
+      "cause": "Ganga river flood (above the danger mark at Bhagalpur); much of the water came from rain upstream, outside the box", "rainDriven": true
+    },
+    "08_usa_wabash": {
+      "country": { "code": "US", "name": "United States" }, "admin": "Indiana / Ohio", "place": "Linn Grove (Wabash)",
+      "cause": "Wabash River above flood stage (record at Linn Grove)", "rainDriven": true
+    },
+    "09_thailand_bangkok": {
+      "country": { "code": "TH", "name": "Thailand" }, "admin": "Bangkok", "place": "Bangkok",
+      "cause": null, "rainDriven": true
+    },
+    "10_bangladesh_chattogram": {
+      "country": { "code": "BD", "name": "Bangladesh" }, "admin": "Chattogram", "place": "Satkania / Banshkhali",
+      "cause": "Floods on the Sangu and Dolu rivers", "rainDriven": true
+    }
+  }
+}

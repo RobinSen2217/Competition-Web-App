@@ -53,10 +53,11 @@ function urlTemplate(byTime, where) {
 }
 
 // Folders that are not this provider's data: saved forecasts (computed, see
-// src/forecast/snapshots.js) and the Earth Engine feature tables the forecasts
-// read (src/forecast/tables.js, versioned by their own file times). Changing
-// them must not count as a change of the site's data.
-const DERIVED_DIRS = new Set(['forecasts', 'gee'])
+// src/forecast/snapshots.js), the Earth Engine feature tables the forecasts
+// read (src/forecast/tables.js, versioned by their own file times) and the
+// hazard datasets (src/providers/hazards.js, which report their own
+// `dataUpdated`). Changing them must not count as a change of the site's data.
+const DERIVED_DIRS = new Set(['forecasts', 'gee', 'hazards'])
 
 // Newest modification time among the data files: "when was the data last
 // changed", good enough until a live pipeline records its own fetch time.

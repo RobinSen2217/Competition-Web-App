@@ -1,20 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AppContext } from './appContext'
-import { DATA, DEFAULT_CITY } from '../lib/data'
+import { CITIES, CITY_IDS, DEFAULT_CITY } from '../lib/store'
 import { store } from '../lib/storage'
 
 export default function AppProvider({ children }) {
   // The last chosen city is remembered between visits.
+  // The city list comes from the bootstrap; a remembered city the server no
+  // longer lists falls back to the default (or the first city if that is gone too).
   const [city, setCityState] = useState(() => {
     const c = store.get('city', DEFAULT_CITY)
-    return DATA.cities[c] ? c : DEFAULT_CITY
+    return CITIES[c] ? c : CITIES[DEFAULT_CITY] ? DEFAULT_CITY : CITY_IDS[0]
   })
   // Bumps on every pick, including re-picking the current city, so the map can
   // recentre on it (React would skip a re-render for an unchanged city).
   const [focusSeq, setFocusSeq] = useState(0)
   const setCity = useCallback((c) => {
-    if (!DATA.cities[c]) return
+    if (!CITIES[c]) return
     setCityState(c)
     setFocusSeq((n) => n + 1)
     store.set('city', c)

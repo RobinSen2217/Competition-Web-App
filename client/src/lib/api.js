@@ -4,12 +4,13 @@
 // Why a separate module: the API is deliberately generic (areas, parameters,
 // layers, time series) so it can grow to custom areas, more intervals, forecasts
 // and hazards, while the components were written against a few small, city-based
-// shapes (DATA, BOUND, MAPMETA, RAS in lib/data.js). Everything that knows the
-// API's URLs or JSON envelopes lives here, so a change to the API means a change
-// to this file only, never to a component.
+// shapes (city list, series per city, boundary, raster set, basemap mosaics; see
+// lib/store.js). Everything that knows the API's URLs or JSON envelopes lives
+// here, so a change to the API means a change to this file only, never to a
+// component.
 //
-// RULE (same as lib/data.js): this module must not import anything that reads
-// the app data, because lib/data.js imports it before initData() has run.
+// RULE: this module must not import anything that reads the app data, because
+// lib/store.js imports it before bootstrap() has run.
 import { asset } from './asset'
 
 // '' = same origin (/api, proxied to the Express server by Vite in dev).
@@ -72,21 +73,27 @@ export async function apiGet(path, { query, signal } = {}) {
 // GET and return only the payload (`data`) of the envelope.
 export const apiData = async (path, opts) => (await apiGet(path, opts)).data
 
-/* ---- startup requests ---- */
+/* ---- requests ---- */
 
-// The three requests the site needs before it can render. Each is a generic
-// query ("everything, monthly"), not an endpoint made for this page, so the
-// same endpoints serve custom areas or other intervals later.
-// `type=city` on both: the explorer is built around the fixed city list; other
-// area types (custom areas of interest) must not show up in its city picker,
-// nor add their series to the startup download.
-export function fetchStartup(signal) {
-  return Promise.all([
-    apiData('/timeseries', { query: { areas: '*', type: 'city', parameters: '*', interval: 'monthly' }, signal }),
-    apiData('/areas', { query: { type: 'city', include: ['boundary', 'layers'] }, signal }),
-    apiData('/basemap', { signal }),
-  ]).then(([timeseries, areas, basemap]) => ({ timeseries, areas, basemap }))
-}
+// Every request is a generic query of the v1 API, not an endpoint made for one
+// section, so the same calls serve custom areas or other intervals later. The
+// data store (lib/store.js) is the only caller: it adds caching, timeouts and
+// the static fallback on top.
+
+// The area list (no geometry, no layers): names, centres and what each area
+// covers. `type=city`: the explorer is built around the fixed city list; other
+// area types (custom areas of interest) must not show up in its city picker.
+export const fetchAreas = (signal) => apiData('/areas', { query: { type: 'city' }, signal })
+
+// Monthly series for some areas and parameters. `parameters` may be '*'.
+export const fetchTimeseries = ({ areas, parameters, from, to }, signal) =>
+  apiData('/timeseries', { query: { areas, parameters, interval: 'monthly', from, to }, signal })
+
+// One area with extra parts (`include`: 'boundary', 'layers').
+export const fetchArea = (areaId, include, signal) => apiData(`/areas/${encodeURIComponent(areaId)}`, { query: { include }, signal })
+
+// Every basemap mosaic (region pair plus three zoom levels per city).
+export const fetchBasemap = (signal) => apiData('/basemap', { signal })
 
 /* ---- v1 -> internal converters ---- */
 
@@ -102,58 +109,39 @@ export const RASTER_LAYERS = {
   lstNight: 'lst-night-summer',
 }
 
-// Shape check of the startup payloads. Cheap, but enough to catch an empty or
-// half-deployed server, which would otherwise crash the components later.
-// Returns the payload to use, or null when the API cannot be used at all.
-//
-// Only global problems reject the response: no time axis, no region mosaics
-// (lib/map/basemap.js reads region[0] and region[1]) or no usable city. A
-// single city lacking its series, boundary, center or three basemap mosaics
-// (basemap.js reads MAPMETA[city][0..2]) is dropped with a warning, so one
-// incomplete area on the server does not hide every other one.
-export function validStartup({ timeseries, areas, basemap }) {
-  if (!isObj(timeseries) || !Array.isArray(timeseries.times) || !timeseries.times.length || !isObj(timeseries.areas)) return null
-  if (!Array.isArray(areas) || !isObj(basemap) || !Array.isArray(basemap.mosaics)) return null
-  const byArea = groupMosaics(basemap.mosaics.filter((m) => isObj(m) && typeof m.id === 'string' && typeof m.image === 'string'))
-  if ((byArea.region || []).length < 2) return null
-  const usable = areas.filter((a) => {
+// The area list -> city metadata, dropping (with a warning) any area the site
+// cannot use: no id, name or centre, or no monthly coverage to place it on the
+// time axis. Returns [{ id, name, state, lat, lon, from, to, parameters }] in
+// the server's order. Only parameters the area reports in its coverage are
+// listed, so a parameter added to the catalogue but not yet available for a
+// city never shows up as an all-null series.
+const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/
+export function toCities(areas) {
+  if (!Array.isArray(areas)) return []
+  return areas.flatMap((a) => {
+    const c = a?.coverage
     const missing = [
-      !isObj(timeseries.areas[a?.id]) && 'series',
-      !isObj(a?.boundary) && 'boundary',
-      !isObj(a?.center) && 'center',
-      (byArea[a?.id] || []).length < 3 && 'basemap mosaics',
-      a?.layers !== undefined && !Array.isArray(a?.layers) && 'layers',
+      typeof a?.id !== 'string' && 'id',
+      typeof a?.name !== 'string' && 'name',
+      !(isObj(a?.center) && Number.isFinite(a.center.lat) && Number.isFinite(a.center.lon)) && 'center',
+      !(MONTH.test(c?.from) && MONTH.test(c?.to) && c.from <= c.to) && 'monthly coverage',
     ].filter(Boolean)
-    if (typeof a?.id !== 'string') missing.unshift('id')
-    if (missing.length) console.warn(`[data] skipping area ${a?.id ?? '(no id)'}: no valid ${missing.join(', ')}`)
-    return !missing.length
-  })
-  if (!usable.length) return null
-  return { timeseries, areas: usable, basemap }
-}
-
-// timeseries + areas -> DATA = { months, cities: { id: { name, state, lat, lon, series } } }.
-// Cities keep the order of the /areas list. Only parameters the area reports
-// in its coverage are kept, so a parameter added to the catalogue but not yet
-// available for a city does not appear as an all-null series.
-export function toClimate(timeseries, areas) {
-  const cities = {}
-  for (const a of areas) {
-    const all = timeseries.areas[a.id] || {}
-    const keys = Array.isArray(a.coverage?.parameters) ? a.coverage.parameters.filter((k) => k in all) : Object.keys(all)
-    cities[a.id] = {
+    if (missing.length) {
+      console.warn(`[data] skipping area ${a?.id ?? '(no id)'}: no valid ${missing.join(', ')}`)
+      return []
+    }
+    return [{
+      id: a.id,
       name: a.name,
       state: a.region?.state,
       lat: a.center.lat,
       lon: a.center.lon,
-      series: Object.fromEntries(keys.map((k) => [k, all[k]])),
-    }
-  }
-  return { months: timeseries.times, cities }
+      from: c.from,
+      to: c.to,
+      parameters: Array.isArray(c.parameters) ? c.parameters.filter((k) => typeof k === 'string') : [],
+    }]
+  })
 }
-
-// areas (with include=boundary) -> BOUND = { id: GeoJSON geometry }.
-export const toBoundaries = (areas) => Object.fromEntries(areas.map((a) => [a.id, a.boundary]))
 
 // Mosaic list -> { areaId: [mosaic, ...] }, keeping the server's order (coarse
 // to fine), which the basemap relies on.
@@ -167,9 +155,13 @@ function groupMosaics(mosaics) {
 // lib/map/basemap.js reads: id, z (native zoom), bounds, image (public path of
 // the photo) and labels (public path of the place-name overlay, or null). The
 // paths stay unresolved here; basemap.js passes them through asset().
-// lib/data.js fills the bundled mapmeta.json into the same shape.
+// lib/store.js fills the static mapmeta.json into the same shape.
+// Returns null when the response is unusable: basemap.js needs the region pair
+// (region[0], region[1]); a city with fewer than three mosaics is skipped there.
 export function toMosaics(basemap) {
-  const grouped = groupMosaics(basemap.mosaics)
+  if (!isObj(basemap) || !Array.isArray(basemap.mosaics)) return null
+  const grouped = groupMosaics(basemap.mosaics.filter((m) => isObj(m) && typeof m.id === 'string' && typeof m.image === 'string'))
+  if ((grouped.region || []).length < 2) return null
   return Object.fromEntries(
     Object.entries(grouped).map(([areaId, list]) => [
       areaId,
@@ -185,8 +177,8 @@ const layerImage = (layer, time) => asset(time === undefined ? layer.image.url :
 // change, lstDay, lstNight, values } } with image URLs resolved against the
 // deploy base. A city gets an entry only when it has all four MODIS layers, as
 // before when a city was missing from rasters.json. `values` is the ndvi-peak
-// values link (informational; loadPixelValues reads the links of all four
-// layers from `valueLinks`, the second result).
+// values link (informational; the store's getPixelValues reads the links of
+// all four layers from `valueLinks`, the second result).
 export function toRasters(areas) {
   const rasters = {}, valueLinks = {}
   for (const a of areas) {
@@ -229,6 +221,23 @@ export function toAreaLayers(areas) {
       ),
     ]),
   )
+}
+
+// One area (with include=boundary,layers) -> the store's area detail:
+// { boundary: GeoJSON geometry | null, raster: RAS entry | null,
+//   layers: { layerId: { bounds, url, urlTemplate } }, pixelLinks: links | null }
+// pixelLinks: the four /values links fetchPixelValues needs (null when the
+// area's MODIS layers do not all expose values).
+export function toAreaDetail(area) {
+  if (!isObj(area) || typeof area.id !== 'string') return null
+  const a = { ...area, layers: Array.isArray(area.layers) ? area.layers : [] }
+  const { rasters, valueLinks } = toRasters([a])
+  return {
+    boundary: isObj(a.boundary) ? a.boundary : null,
+    raster: rasters[a.id] || null,
+    layers: toAreaLayers([a])[a.id],
+    pixelLinks: valueLinks[a.id] || null,
+  }
 }
 
 // Fetches the per-pixel values of the four MODIS layers in parallel and returns

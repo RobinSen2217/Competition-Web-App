@@ -1,5 +1,7 @@
 import L from 'leaflet'
-import { CITY_IDS, DATA } from '../data'
+// The city list and centres come from the startup bootstrap (lib/store.js), so
+// they are ready synchronously; they are only read inside functions.
+import { CITIES, CITY_IDS } from '../store'
 
 // Kilometres per degree: latitude is ~constant, longitude shrinks with cos(lat).
 const KM_PER_DEG_LAT = 110.574
@@ -12,7 +14,7 @@ export function squareAround(lat, lon, hw) {
 }
 
 // The 10 × 10 km measurement box every city-average series is computed over.
-export const boxB = (c) => squareAround(DATA.cities[c].lat, DATA.cities[c].lon, 5)
+export const boxB = (c) => squareAround(CITIES[c].lat, CITIES[c].lon, 5)
 
 // Overview of the whole region, used for the initial view and the "Region" button.
 export const REGION_CENTER = [26.6, 74]
@@ -55,7 +57,7 @@ export const hwLabel = (hw) => (hw < 2 ? hw.toFixed(2) : hw.toFixed(hw < 10 ? 1 
 export function planStats({ lat, lon, hw }) {
   const side = 2 * hw, area = side * side
   const n = (x) => (x < 10 ? x.toFixed(1) : Math.round(x).toLocaleString('en-IN'))
-  const near = CITY_IDS.map((c) => ({ c, dkm: distKm([lat, lon], [DATA.cities[c].lat, DATA.cities[c].lon]) })).sort((a, b) => a.dkm - b.dkm)[0]
+  const near = CITY_IDS.map((c) => ({ c, dkm: distKm([lat, lon], [CITIES[c].lat, CITIES[c].lon]) })).sort((a, b) => a.dkm - b.dkm)[0]
   const s = side.toFixed(side < 10 ? 1 : 0)
   return [
     ['Box', `${s} × ${s} km`],
@@ -63,7 +65,7 @@ export function planStats({ lat, lon, hw }) {
     ['Temperature pixels (1 km)', `≈ ${n(area / 0.8586)}`],
     ['Greenness pixels (250 m)', `≈ ${n(area / 0.0537)}`],
     ['Sentinel-2 pixels (10 m)', `≈ ${n(area * 1e4)}`],
-    ['Nearest city', `${DATA.cities[near.c].name}, ${near.dkm.toFixed(0)} km`],
+    ['Nearest city', `${CITIES[near.c].name}, ${near.dkm.toFixed(0)} km`],
   ]
 }
 

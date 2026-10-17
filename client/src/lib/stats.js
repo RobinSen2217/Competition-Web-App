@@ -1,5 +1,4 @@
 import { mOf, yOf } from './months'
-import { ser } from './data'
 
 export const mean = (a) => {
   const v = a.filter((x) => x != null && !isNaN(x))
@@ -82,9 +81,10 @@ export function corr(a, b) {
   return sab / Math.sqrt(saa * sbb)
 }
 
-// Latest NDVI against the usual value for that calendar month.
-export function ndviStatus(c) {
-  const a = ser(c, 'ndvi'), li = lastIdx(a), cl = clim(a), d = ((a[li] - cl[mOf(li)]) / cl[mOf(li)]) * 100
+// Latest NDVI against the usual value for that calendar month. `a` is a city's
+// NDVI series aligned with M (from the store's useTimeseries).
+export function ndviStatus(a) {
+  const li = lastIdx(a), cl = clim(a), d = ((a[li] - cl[mOf(li)]) / cl[mOf(li)]) * 100
   return {
     li,
     v: a[li],

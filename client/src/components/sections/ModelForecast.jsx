@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { DATA } from '../../lib/data'
+import { CITIES } from '../../lib/store'
+import { SECTION_HEIGHTS, heightAt } from '../../lib/sectionHeights'
+import useViewportWidth from '../../hooks/useViewportWidth'
 import { loadForecast, NOT_EXTRACTED } from '../../lib/forecasts'
 import { MON } from '../../lib/months'
 import { css } from '../../lib/theme'
@@ -38,15 +40,15 @@ const HISTORY = 36
 const TOP_DRIVERS = 5
 
 // The chart's x axis is an absolute month count (year * 12 + month), not an
-// index into DATA.months: the forecast runs past the end of the site's data and
-// the response may be issued from a slightly different month than DATA ends.
+// index into the store's month axis (M): the forecast runs past the end of the
+// site's data and the response may be issued from a slightly different month than M ends.
 const mIdx = (t) => +t.slice(0, 4) * 12 + (+t.slice(5, 7) - 1)
 const idxLabel = (x) => MON[x % 12] + ' ' + Math.floor(x / 12)
 const tLabel = (t) => (t ? idxLabel(mIdx(t)) : '–')
 const fmt = (v, d = 2) => (v == null || !isFinite(v) ? '–' : v.toFixed(d))
 const pct = (r2) => Math.round(r2 * 100)
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
-const cityName = (id) => DATA?.cities?.[id]?.name || id
+const cityName = (id) => CITIES?.[id]?.name || id
 // The box the model's data covers, e.g. "2 × 2 km" (from the response)
 const boxLabel = (data) => (typeof data?.provenance?.areaKm === 'string' ? data.provenance.areaKm : null)
 const COUNT = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine']
@@ -102,19 +104,20 @@ function ledeText(data, models) {
 export default function ModelForecast() {
   const { city } = useApp()
   const reduceMotion = useReducedMotion()
+  const vw = useViewportWidth()
   const [mode, setMode] = useState('gbm')
   const [showHind, setShowHind] = useState(false)
   // Bumped by "Try again"; part of the request key so the effect re-runs
   const [attempt, setAttempt] = useState(0)
   const reqKey = city + '#' + attempt
-  // The result is tagged with the request it answers, so a city switch shows the
-  // loader at once (stale key) without resetting state inside the effect.
+  // The result is tagged with the request (and city) it answers, so a city
+  // switch is seen at once (stale key) without resetting state in the effect.
   const [res, setRes] = useState({ key: null })
   useEffect(() => {
     let live = true
     loadForecast(city).then(
-      (r) => live && setRes({ key: reqKey, ...r }),
-      (e) => live && setRes({ key: reqKey, error: e }),
+      (r) => live && setRes({ key: reqKey, city, ...r }),
+      (e) => live && setRes({ key: reqKey, city, error: e }),
     )
     // A late answer for a city no longer selected is ignored
     return () => {
@@ -122,7 +125,13 @@ export default function ModelForecast() {
     }
   }, [city, reqKey])
   const ready = res.key === reqKey
-  const data = ready ? res.data : null
+  // While another city's forecast loads, the previous forecast stays on screen,
+  // dimmed (like the store's keepPrevious), instead of collapsing to the
+  // skeleton and growing back: the card keeps its height on a city switch.
+  const stale = !ready && !!res.data
+  const data = ready || stale ? res.data : null
+  // The city the shown numbers belong to (the previous one while stale)
+  const shownCity = stale ? res.city : city
 
   // Models present in the response, in display order (a response may hold fewer)
   const models = useMemo(
@@ -236,9 +245,19 @@ export default function ModelForecast() {
   // No Earth Engine data for this city yet: a normal state, not an error
   const notYet = ready && res.error?.code === NOT_EXTRACTED
   const failed = ready && res.error && !notYet
+  // Nothing to show yet: the skeleton, in a card held at the loaded card's
+  // measured height for this width (the same table as the page's placeholder,
+  // lib/sectionHeights.js), so neither the first load nor the arrival of the
+  // forecast moves anything below it.
+  const skeleton = loading && !stale
 
   return (
-    <Card id="mlforecast" aria-labelledby="mlT" aria-busy={loading}>
+    <Card
+      id="mlforecast"
+      aria-labelledby="mlT"
+      aria-busy={loading}
+      style={skeleton ? { minHeight: heightAt(SECTION_HEIGHTS.mlforecast, vw) } : undefined}
+    >
       <CardHead
         aside={
           // Nothing to switch between until there is a forecast
@@ -260,7 +279,7 @@ export default function ModelForecast() {
         <Lede>{ledeText(data, models)}</Lede>
       </CardHead>
 
-      {loading ? (
+      {skeleton ? (
         <ForecastSkeleton animate={!reduceMotion} />
       ) : notYet ? (
         <NotExtracted city={cityName(city)} />
@@ -272,17 +291,32 @@ export default function ModelForecast() {
           </div>
         </div>
       ) : (
-        <>
-          <Readout id="mlRead">{readout}</Readout>
-          <Chart options={options} hover={hover} onHover={onHover} tall />
-          <Legend shown={shown} showHind={showHind} />
-          <SourceNote data={data} city={cityName(city)} />
-          <div className="grid gap-[18px] md:grid-cols-2">
-            {compare ? <CompareTable models={models} /> : <Accuracy m={single} />}
-            <Drivers m={focus} note={compare && focus ? `Shown for ${focus.label}, the best scorer on unseen data.` : null} />
+        // One wrapper with the card's own gap, so the layout is the same as
+        // without it; it dims (and ignores the pointer) while stale
+        <div className="relative flex flex-col gap-[18px]">
+          <div
+            className={cx('flex flex-col gap-[18px] transition-opacity duration-200', stale && 'pointer-events-none opacity-45')}
+            aria-hidden={stale || undefined}
+          >
+            <Readout id="mlRead">{readout}</Readout>
+            <Chart options={options} hover={hover} onHover={onHover} tall />
+            <Legend shown={shown} showHind={showHind} />
+            <SourceNote data={data} city={cityName(shownCity)} />
+            <div className="grid gap-[18px] md:grid-cols-2">
+              {compare ? <CompareTable models={models} /> : <Accuracy m={single} />}
+              <Drivers m={focus} note={compare && focus ? `Shown for ${focus.label}, the best scorer on unseen data.` : null} />
+            </div>
+            <Assumptions data={data} source={res.source} generated={res.generated} fallback={res.fallback} />
           </div>
-          <Assumptions data={data} source={res.source} generated={res.generated} fallback={res.fallback} />
-        </>
+          {stale && (
+            // Over the dimmed chart, so the message costs no height
+            <div className="pointer-events-none absolute inset-x-0 top-[150px] flex justify-center px-4">
+              <p role="status" className="rounded-full bg-surface px-3.5 py-1.5 text-[14px] text-muted shadow-card">
+                Running the forecast models for {cityName(city)}…
+              </p>
+            </div>
+          )}
+        </div>
       )}
     </Card>
   )
@@ -491,7 +525,7 @@ const FALLBACK = {
 
 function Assumptions({ data, source, generated, fallback }) {
   // `source` is the server's data.source: only 'live' is a fresh model run;
-  // the server's saved forecast and the site's bundled copy are both snapshots.
+  // the server's saved forecast and the site's static copy are both snapshots.
   const saved = [dateLabel(generated) && `from ${dateLabel(generated)}`, FALLBACK[fallback] && `because ${FALLBACK[fallback]}`].filter(Boolean).join(', ')
   return (
     <div className="flex flex-col gap-2 text-[14px] text-muted">
@@ -539,13 +573,15 @@ function Provenance({ p }) {
   )
 }
 
-// Placeholder with the panel's final layout (readout strip, tall chart, two
-// panels), so nothing jumps when the forecast arrives. Only opacity pulses.
+// Placeholder in the shape of the loaded body (readout strip, tall chart, then
+// the panels). The card's min-height (see `skeleton` above) sets the total
+// height; flex-1 lets the panels' blocks fill whatever it leaves. Only
+// opacity pulses.
 function ForecastSkeleton({ animate }) {
   const pulse = animate ? { animate: { opacity: [0.55, 1, 0.55] }, transition: { duration: 1.4, ease: 'easeInOut', repeat: Infinity } } : {}
   const block = 'rounded-[14px] bg-surface2'
   return (
-    <div className="flex flex-col gap-[18px]">
+    <div className="flex flex-1 flex-col gap-[18px]">
       <p role="status" className="text-[14px] text-muted">Running the forecast models…</p>
       <motion.div className={cx(block, 'h-[46px]')} {...pulse} />
       <motion.div className={cx(block, 'relative h-[340px] overflow-hidden')} {...pulse}>
@@ -554,9 +590,9 @@ function ForecastSkeleton({ animate }) {
           <path d="M0 28 C10 20 15 30 25 24 S40 14 50 22 S65 30 75 20 S90 16 100 22" fill="none" stroke="var(--line)" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
         </svg>
       </motion.div>
-      <div className="grid gap-[18px] md:grid-cols-2">
-        <motion.div className={cx(block, 'h-[150px]')} {...pulse} />
-        <motion.div className={cx(block, 'h-[150px]')} {...pulse} />
+      <div className="grid flex-1 gap-[18px] md:grid-cols-2">
+        <motion.div className={cx(block, 'min-h-[150px]')} {...pulse} />
+        <motion.div className={cx(block, 'min-h-[150px]')} {...pulse} />
       </div>
     </div>
   )

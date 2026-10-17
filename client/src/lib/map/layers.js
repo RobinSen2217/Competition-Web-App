@@ -1,15 +1,21 @@
-import { AREA_LAYERS, RAS } from '../data'
 import { asset } from '../asset'
 
 // Data layers that can be drawn over the satellite photo in the map explorer.
 // MODIS layers (green, change, heat*) exist for every city and their image URLs
-// come from RAS[city]; the Sentinel-2 layers are a single notebook export that
-// only covers Gadisar Lake, so they carry `only`. Their image and bounds come
-// from the API layer named by `apiId` (AREA_LAYERS) when the API is used, and
-// from `img` + S2B here otherwise (bundled data has no layer list).
+// come from the area's `raster`; the Sentinel-2 layers are a single notebook
+// export that only covers Gadisar Lake, so they carry `only`. Their image and
+// bounds come from the API layer named by `apiId` (the area's `layers`) when the
+// API is used, and from `img` + S2B here otherwise (the static fallback files
+// have no layer list).
+//
+// The functions below take the selected area's detail, as returned by
+// lib/store.js useAreaDetail(city): { raster, layers, ... }. It is loaded on
+// demand, so `area` may be undefined while it loads; they then return null
+// (no overlay yet) instead of throwing.
 
 // Bounds of the Sentinel-2 export (2 × 2 km around Gadisar Lake, Jaisalmer).
-// Fallback for bundled data; the API serves the same values.
+// Used when the area detail has no such layer (the static fallback files);
+// the API serves the same values.
 export const S2B = [[26.902729, 70.919915], [26.920817, 70.940063]]
 
 // ramp: colour stops of the legend bar, tick labels under it and the two end captions.
@@ -36,10 +42,11 @@ export const notForCity = (id, city) => {
 // The pills offered for a city: every shared layer plus that city's own extras.
 export const layersFor = (city) => MLAYERS.filter((l) => !l.only || l.only === city)
 
-// Image URL and lat/lon bounds for a layer, or null when the city has no raster.
-// `year` only matters for the yearly greenness layer.
-export function srcFor(city, id, year) {
-  const r = RAS[city]
+// Image URL and lat/lon bounds for a layer, or null when the area (or its
+// raster) is not loaded / missing. `year` only matters for the yearly greenness
+// layer.
+export function srcFor(area, id, year) {
+  const r = area?.raster
   if (!r) return null
   if (id === 'green') return { url: r.years[String(year)], b: r.ndviBounds }
   if (id === 'change') return { url: r.change, b: r.ndviBounds }
@@ -47,8 +54,8 @@ export function srcFor(city, id, year) {
   if (id === 'heatnight') return { url: r.lstNight, b: r.lstBounds }
   const d = MLAYERS.find((l) => l.id === id)
   if (!d || !d.img) return null
-  // A static image layer from the API wins over the bundled constants.
-  const api = d.apiId && AREA_LAYERS[city]?.[d.apiId]
+  // A static image layer from the API wins over the constants above.
+  const api = d.apiId && area.layers?.[d.apiId]
   if (api?.url && api.bounds) return { url: api.url, b: api.bounds }
   return { url: d.img, b: S2B }
 }
@@ -56,4 +63,4 @@ export function srcFor(city, id, year) {
 // The image drawn on top for the current map state: in greenness swipe mode the
 // right-hand year (yb), otherwise the slider year. null for 'None'. Shared by the
 // overlay builder and the swipe divider's visibility so the two can't disagree.
-export const mainSrc = (city, id, { swipe, year, yb }) => srcFor(city, id, id === 'green' && swipe ? yb : year)
+export const mainSrc = (area, id, { swipe, year, yb }) => srcFor(area, id, id === 'green' && swipe ? yb : year)

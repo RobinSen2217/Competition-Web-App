@@ -22,4 +22,6 @@ server/secrets/
 
 # Python virtual environment for the forecasting black box (rebuild with server/ml/requirements.txt)
 server/ml/.venv/
+# ... and for the hazard models (rebuild with server/ml/requirements-hazards.txt)
+server/ml/.venv-hazards/
 __pycache__/

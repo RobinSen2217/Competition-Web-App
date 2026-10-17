@@ -1,0 +1,27 @@
+#!/bin/sh
+# Runs the flood model's Python (.venv-hazards) with the right CPU architecture.
+#
+# Why: exact reproduction of the notebook needs scikit-learn 1.8.0, and on this
+# project's Apple Silicon Mac that venv was installed as x86_64 (Rosetta). Its
+# python binary is universal, so a plain call starts as arm64 and then cannot
+# load the x86_64 scikit-learn libraries. If the venv's scikit-learn is x86_64
+# and we are on an arm64 Mac, re-run under `arch -x86_64`; everywhere else
+# (Linux, Intel Macs, an arm64-built venv) run it directly.
+#
+# Usage (from server/ml):  ./hazards-python -m forecaster.hazards build flood
+
+DIR=$(cd "$(dirname "$0")" && pwd)
+PY="$DIR/.venv-hazards/bin/python"
+if [ ! -x "$PY" ]; then
+  echo "No $PY - create it first (see README.md, Hazards)." >&2
+  exit 2
+fi
+
+if [ "$(uname -s)" = Darwin ] && [ "$(uname -m)" = arm64 ]; then
+  # Any compiled scikit-learn module tells us which architecture was installed.
+  SO=$(find "$DIR/.venv-hazards/lib" -path '*sklearn*' -name '*.so' 2>/dev/null | head -n 1)
+  if [ -n "$SO" ] && ! lipo -archs "$SO" 2>/dev/null | grep -q arm64; then
+    exec arch -x86_64 "$PY" "$@"
+  fi
+fi
+exec "$PY" "$@"

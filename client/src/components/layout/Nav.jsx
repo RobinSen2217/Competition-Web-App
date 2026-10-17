@@ -5,11 +5,29 @@ import { cx } from '../../styles/classes'
 import { INSTITUTIONS } from '../../data/contact'
 import { sectionOf } from '../../hooks/useModuleTheme'
 import VoiceGuide from './VoiceGuide'
+import CityPicker from './CityPicker'
 
 // Sticky top bar: the app logo with the partner institutions, the voice guide
 // button, and one tab per module. The tab of the section you are on gets a
 // solid accent pill, which slides from tab to tab (a shared framer-motion
 // layoutId) instead of jumping. "Disaster" opens a small menu of hazards.
+// On the vegetation page a city picker sits before the tabs, so the city can be
+// changed from anywhere while scrolling (the disaster pages have no city).
+//
+// Widths (the city name is never cut: "Jaipur" and "Jaisalmer" must stay
+// distinguishable, so the picker never shrinks and the rest makes room):
+//   700px and up  name, partner logos, picker, tabs in one row
+//   580-699px     the logos are left out (they would squeeze the name)
+//   below 580px   phones: the picker moves to a second row of the bar, under
+//                 the name and the tabs (one row cannot fit all three with a
+//                 readable city name at 320-400px). The cards' scroll margin
+//                 (scroll-mt in Card/CardSkeleton/Hero) allows for the taller bar.
+//                 Why 580: the one-row bar needs ~545px with the longest name
+//                 ("Jaisalmer"); below that it used to wrap on its own, with the
+//                 tabs on a second row and the card scroll margin too small.
+//                 The extra ~35px absorbs system fonts wider than ours.
+// Keep PHONE (580) in step with the max-[580px] classes here, in CityPicker.jsx
+// and in the scroll-mt classes of Card (ui/index.jsx), CardSkeleton and Hero.
 
 // The "Listen" voice guide (VoiceGuide.jsx) is hidden for now; set to true to show it again.
 const SHOW_VOICE_GUIDE = false
@@ -22,48 +40,55 @@ const HAZARDS = [{ to: '/disaster/flood', label: 'Flood' }]
 // the sliding <ActivePill> paints it.
 const tabCls = (active) =>
   cx(
-    'relative inline-flex cursor-pointer items-center gap-1 rounded-full border-0 bg-transparent px-3 py-[7px] max-[380px]:px-2 font-body text-[14px] leading-[normal] font-medium whitespace-nowrap no-underline transition-colors duration-150',
+    'relative inline-flex cursor-pointer items-center gap-1 rounded-full border-0 bg-transparent px-3 py-[7px] max-[481px]:px-2 max-[400px]:px-1.5 font-body text-[14px] max-[400px]:text-[13px] leading-[normal] font-medium whitespace-nowrap no-underline transition-colors duration-150',
     // The active tab keeps its accent colours on hover
     active ? 'text-on-accent' : 'text-muted hover:bg-accent-soft hover:text-ink',
   )
 
 export default function Nav() {
+  const { pathname } = useLocation()
+  const showCity = sectionOf(pathname) === 'vegetation'
   return (
     // Translucent page colour with a blur, so content scrolling underneath stays faintly visible
     <nav
       className="sticky top-[env(safe-area-inset-top,0px)] z-[1000] border-b border-line bg-[color-mix(in_srgb,var(--bg)_88%,transparent)] backdrop-blur-[10px]"
       aria-label="Main"
     >
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 px-5 py-2.5 max-[380px]:gap-2 max-[380px]:px-4">
-        {/* App name (no logo for now). Smaller on phones, and on the narrowest
-            screens it wraps onto two lines, so it always fits next to the tabs */}
+      {/* flex-wrap: on phones the picker takes a row of its own (basis-full) */}
+      <div className="mx-auto flex max-w-[1180px] flex-wrap items-center gap-x-4 gap-y-1 px-5 py-2.5 max-[580px]:gap-x-2 max-[580px]:py-2 max-[380px]:px-4">
+        {/* App name (no logo for now). Below 420px it wraps onto two smaller
+            lines, so the tabs fit beside it down to 320px */}
         <Link
-          className="font-display text-[19px] font-semibold whitespace-nowrap text-ink no-underline max-[480px]:text-[16px] max-[380px]:max-w-[90px] max-[380px]:text-[14px] max-[380px]:leading-tight max-[380px]:whitespace-normal"
+          className="font-display text-[19px] font-semibold whitespace-nowrap text-ink no-underline max-[640px]:text-[16px] max-[420px]:max-w-[86px] max-[420px]:text-[14px] max-[420px]:leading-tight max-[420px]:whitespace-normal"
           to="/"
         >
           Competition Web App
         </Link>
-        {/* Partner institution logos (names as tooltip and alt text). Hidden on
-            phones, where the tabs need the room. */}
-        <span className="mr-auto hidden items-center gap-3 border-l border-line pl-4 min-[640px]:flex">
+        {/* Partner institution logos (names as tooltip and alt text). Only from
+            700px: below that they would squeeze the name and the picker. */}
+        <span className="hidden items-center gap-3 border-l border-line pl-4 min-[700px]:flex">
           {INSTITUTIONS.map((i) => (
             <img key={i.short} src={i.logo} alt={i.name} title={i.name} className="h-9 w-auto" />
           ))}
         </span>
         {SHOW_VOICE_GUIDE && <VoiceGuide className="ml-auto" />}
-        <Tabs />
+        {/* The picker never shrinks (shrink-0 inside), so the name stays whole */}
+        {showCity && <CityPicker className="ml-auto max-[580px]:order-last max-[580px]:ml-0 max-[580px]:basis-full" />}
+        {/* Pushed right: always on phones (the picker is in the row below) and
+            on pages without a picker */}
+        <Tabs className={showCity ? 'max-[580px]:ml-auto' : 'ml-auto'} />
       </div>
     </nav>
   )
 }
 
-function Tabs() {
+function Tabs({ className }) {
   const { pathname } = useLocation()
   const section = sectionOf(pathname)
   return (
     // LayoutGroup scopes the layoutId to this nav, so the pill animates between these tabs only
     <LayoutGroup id="main-tabs">
-      <div className="flex gap-0.5">
+      <div className={cx('flex shrink-0 gap-0.5', className)}>
         {/* "end" so the Vegetation tab ("/") isn't also active on /disaster */}
         <NavLink to="/" end className={tabCls(section === 'vegetation')}>
           {section === 'vegetation' && <ActivePill />}

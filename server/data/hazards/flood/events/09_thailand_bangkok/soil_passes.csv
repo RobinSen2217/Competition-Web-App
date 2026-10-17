@@ -1,0 +1,7 @@
+file,date,utc_time,local_time,track,direction,frames,phase,in_reported_flood_period,cells_in_box,cells_with_soil_moisture,coverage_pct,mean_sm,median_sm,p10_sm,p90_sm,mean_sm_recommended_only,cells_recommended,mean_uncertainty,phase_reason
+2026-09-13_T112A_before_soil_moisture.tif,2026-09-13,2026-09-13 22:53,2026-09-14 05:53,112,ASCENDING,9+8,before,false,67239,14737,21.9,0.2895,0.2955,0.2104,0.3568,0.2413,5005,0.0327,before the 24-30 Sep floods
+2026-09-18_T011A_before_soil_moisture.tif,2026-09-18,2026-09-18 22:44,2026-09-19 05:44,11,ASCENDING,9+8,before,false,67239,29453,43.8,0.2748,0.2789,0.1983,0.337,0.2543,18962,0.03,before the 24-30 Sep floods
+2026-09-18_T004D_before_soil_moisture.tif,2026-09-18,2026-09-18 11:47,2026-09-18 18:47,4,DESCENDING,82+81,before,false,67239,33843,50.3,0.3139,0.3101,0.2608,0.3666,0.3187,22002,0.0364,before the 24-30 Sep floods
+2026-09-25_T112A_during_soil_moisture.tif,2026-09-25,2026-09-25 22:53,2026-09-26 05:53,112,ASCENDING,9+8,during,true,67239,14720,21.9,0.2688,0.2825,0.152,0.3474,0.201,6299,0.0331,flood emergency declared 26 Sep; all 50 districts disaster zones
+2026-09-30_T011A_receding_soil_moisture.tif,2026-09-30,2026-09-30 22:44,2026-10-01 05:44,11,ASCENDING,9+8,receding,false,67239,29440,43.8,0.2969,0.295,0.233,0.3533,0.2952,20305,0.0378,floodwaters began to ease on 29 Sep
+2026-09-30_T004D_receding_soil_moisture.tif,2026-09-30,2026-09-30 11:47,2026-09-30 18:47,4,DESCENDING,82+81,receding,true,67239,33843,50.3,0.3105,0.3091,0.2489,0.3678,0.3109,21942,0.0365,floodwaters began to ease on 29 Sep

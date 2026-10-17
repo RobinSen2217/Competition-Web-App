@@ -1,6 +1,6 @@
 // Time intervals the API knows how to express. Each entry says how a time value
 // is written for that interval, so query validation and responses stay generic.
-// To add an interval (e.g. daily or the MODIS 16-day composite), add an entry
+// To add an interval (e.g. the MODIS 16-day composite), add an entry
 // here, teach the provider to produce series for it and list it in each area's
 // coverage.intervals; routes need no change.
 //
@@ -37,8 +37,17 @@ const INTERVALS = {
     steps: (from, to) => year(to) - year(from) + 1,
     timeseries: false, // only layer times today; no yearly series in the data
   },
-  // daily: { id: 'daily', label: 'Daily', format: 'YYYY-MM-DD', pattern: /^\d{4}-\d{2}-\d{2}$/, example: '2020-06-15',
-  //   steps: (from, to) => (Date.parse(to) - Date.parse(from)) / 86400000 + 1, timeseries: true },
+  daily: {
+    id: 'daily',
+    label: 'Daily',
+    format: 'YYYY-MM-DD',
+    pattern: /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
+    example: '2026-07-04',
+    steps: (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1,
+    // Used by the hazard event series (UTC days); /timeseries has no daily
+    // area data yet, so it does not offer it.
+    timeseries: false,
+  },
   // '16-day': { id: '16-day', label: '16-day composite', format: 'YYYY-DDD', pattern: /^\d{4}-\d{3}$/, example: '2020-161',
   //   steps: ..., timeseries: true },
 }

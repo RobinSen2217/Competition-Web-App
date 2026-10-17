@@ -1,4 +1,4 @@
-import { DATA } from '../data'
+import { CITIES } from '../store'
 import { FIRST_YEAR, LAST_YEAR } from '../months'
 import { mean } from '../stats'
 import { boxB, distKm } from './geometry'
@@ -9,7 +9,7 @@ import L from 'leaflet'
 // full (Tailwind finds classes by scanning source text). Numbers in <b> use the
 // mono font.
 
-// Pixel inspector. `vals` is the result of loadPixelValues(city); values are
+// Pixel inspector. `vals` is the result of store.getPixelValues(city); values are
 // stored as integers: NDVI × 1000 and temperature × 10.
 //   green / change: the pixel's monsoon-peak NDVI for every year as a mini line
 //     chart, plus the fixed 2010–12 vs 2023–25 comparison behind the Change layer
@@ -58,7 +58,7 @@ export function pixelPopupHtml({ layerId, row, col, vals, year }) {
 // Fallback for clicks without pixel data: the coordinates, and either "inside
 // the box" or the distance to the selected city's centre.
 export function pointPopupHtml(ll, city) {
-  const d = DATA.cities[city]
+  const d = CITIES[city]
   const inBox = L.latLngBounds(boxB(city)).contains(ll)
   return `<b>${ll.lat.toFixed(4)}°N, ${ll.lng.toFixed(4)}°E</b><br>${inBox ? 'Inside the measurement box' : distKm(ll, [d.lat, d.lon]).toFixed(1) + ' km from the ' + d.name + ' centre'}`
 }

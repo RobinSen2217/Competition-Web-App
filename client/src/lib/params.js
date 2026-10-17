@@ -1,5 +1,5 @@
 // Every plottable series.
-//   k: key in DATA.cities[c].series     label / short: full and compact names
+//   k: parameter key (useTimeseries)   label / short: full and compact names
 //   unit: display unit                  dec: decimals for values, ticks and deltas
 //   grp: heading the plot builder groups it under
 //   sum: an amount that adds up over time (rain): Compare uses yearly totals and

@@ -1,0 +1,449 @@
+{
+  "hazard": "flood",
+  "version": 1,
+  "generated": "2026-10-17T17:15:27Z",
+  "description": "Map layers per event: an overlay image (file, bounds in EPSG:4326 as [[south, west], [north, east]]) with its legend, stats and source. Written by python -m forecaster.hazards import.",
+  "layers": {
+    "02_china_guangxi": [
+      {
+        "id": "water-reference",
+        "label": "Reference water extent",
+        "kind": "mask",
+        "description": "Water in the reference labels that the team notebook (flood_disaster.ipynb, Part A) uses to train and score its NISAR HH/HV water segmentation: 1 = water, 0 = not water, 255 = unknown. Shown here as the observed water around the event; it is not an output of this app.",
+        "time": null,
+        "crs": "EPSG:4326",
+        "bounds": [
+          [
+            21.999382,
+            107.999955
+          ],
+          [
+            23.8028397,
+            109.8001789
+          ]
+        ],
+        "extent": [
+          [
+            21.999921,
+            107.999955
+          ],
+          [
+            23.8028397,
+            109.8001789
+          ]
+        ],
+        "file": "events/02_china_guangxi/layers/water-reference.png",
+        "image": {
+          "format": "png",
+          "width": 1670,
+          "height": 1673,
+          "bytes": 123515,
+          "sha256": "319a9cbf0df13b86924898ef018f517c1c03eecdad18de5dbc1cab813b3653f5",
+          "downsample": 4,
+          "resolutionDeg": 0.001077978341,
+          "rule": "each image pixel covers 4 x 4 source pixels and shows the first class present in this order: Water, Not water"
+        },
+        "legend": [
+          {
+            "value": 1,
+            "key": "water",
+            "label": "Water",
+            "color": "#1a5cff",
+            "opacity": 0.8
+          },
+          {
+            "value": 0,
+            "key": "not_water",
+            "label": "Not water",
+            "color": null,
+            "opacity": 0
+          },
+          {
+            "value": 255,
+            "key": "unknown",
+            "label": "Unknown (no label)",
+            "color": null,
+            "opacity": 0
+          }
+        ],
+        "stats": {
+          "pixels": 44689200,
+          "totalAreaKm2": 36965.67,
+          "knownAreaKm2": 36907.21,
+          "unknownPct": 0.158,
+          "classes": {
+            "water": {
+              "value": 1,
+              "pixels": 173812,
+              "areaKm2": 143.68,
+              "pctOfKnown": 0.39
+            },
+            "not_water": {
+              "value": 0,
+              "pixels": 44444803,
+              "areaKm2": 36763.52,
+              "pctOfKnown": 99.61
+            },
+            "unknown": {
+              "value": 255,
+              "pixels": 70585,
+              "areaKm2": 58.46
+            }
+          },
+          "eventBox": {
+            "bbox": [
+              109.0,
+              22.5,
+              109.5,
+              23.0
+            ],
+            "pixels": 3441025,
+            "totalAreaKm2": 2849.59,
+            "knownAreaKm2": 2849.13,
+            "unknownPct": 0.016,
+            "classes": {
+              "water": {
+                "value": 1,
+                "pixels": 18682,
+                "areaKm2": 15.47,
+                "pctOfKnown": 0.543
+              },
+              "not_water": {
+                "value": 0,
+                "pixels": 3421786,
+                "areaKm2": 2833.66,
+                "pctOfKnown": 99.457
+              },
+              "unknown": {
+                "value": 255,
+                "pixels": 557,
+                "areaKm2": 0.46
+              }
+            }
+          },
+          "width": 6680,
+          "height": 6690,
+          "pixelSizeDeg": [
+            0.000269494585,
+            0.000269494585
+          ],
+          "pixelSizeM": [
+            27.6,
+            29.97
+          ],
+          "method": "Counted at the native resolution; each pixel's area is R² · Δφ · Δλ · cos(φ) at its row centre, R = 6371.0088 km (mean Earth radius). Percentages of known pixels leave out the unknown ones."
+        },
+        "source": {
+          "notebook": "flood_disaster.ipynb",
+          "role": "Reference labels for Part A water segmentation (NISAR HH/HV); \"Prepared binary references: 0=non-water, 1=water, 255=unknown\"",
+          "cells": "Part A: label inventory (cell 11), single-event check (12), EVENT_LABEL_FILES (14), multi-event dataset (30)",
+          "origin": null,
+          "date": null,
+          "provenanceNote": "The notebook does not say where these labels come from or which day they show. It pairs each with the event's NISAR flood-time (\"during\") scene, and one of its plots titles value 1 \"candidate new water\", so they are meant as the water at flood time, possibly flood water only rather than every river and lake.",
+          "file": "02_china_guangxi_water_reference.tif",
+          "band": "water_label",
+          "nodata": 255
+        },
+        "notes": [
+          "Covers a larger area than the event box; stats.eventBox gives the numbers inside the box.",
+          "The image is downsampled with an \"any water\" rule, so thin water looks a little wider than it is; the stats are counted at the native ~30 m.",
+          "Unknown pixels are transparent, like non-water ones; stats.unknownPct says how many there are."
+        ]
+      }
+    ],
+    "07_india_bihar_bhagalpur": [
+      {
+        "id": "water-reference",
+        "label": "Reference water extent",
+        "kind": "mask",
+        "description": "Water in the reference labels that the team notebook (flood_disaster.ipynb, Part A) uses to train and score its NISAR HH/HV water segmentation: 1 = water, 0 = not water, 255 = unknown. Shown here as the observed water around the event; it is not an output of this app.",
+        "time": null,
+        "crs": "EPSG:4326",
+        "bounds": [
+          [
+            24.8996827,
+            86.4999465
+          ],
+          [
+            25.6009076,
+            87.5003104
+          ]
+        ],
+        "extent": [
+          [
+            24.8999522,
+            86.4999465
+          ],
+          [
+            25.6009076,
+            87.5000409
+          ]
+        ],
+        "file": "events/07_india_bihar_bhagalpur/layers/water-reference.png",
+        "image": {
+          "format": "png",
+          "width": 1856,
+          "height": 1301,
+          "bytes": 114144,
+          "sha256": "0e260e082c2aa1cc87f0dbf024c63ca67c1653326c774c64e3d56c63d11e9b38",
+          "downsample": 2,
+          "resolutionDeg": 0.00053898917,
+          "rule": "each image pixel covers 2 x 2 source pixels and shows the first class present in this order: Water, Not water"
+        },
+        "legend": [
+          {
+            "value": 1,
+            "key": "water",
+            "label": "Water",
+            "color": "#1a5cff",
+            "opacity": 0.8
+          },
+          {
+            "value": 0,
+            "key": "not_water",
+            "label": "Not water",
+            "color": null,
+            "opacity": 0
+          },
+          {
+            "value": 255,
+            "key": "unknown",
+            "label": "Unknown (no label)",
+            "color": null,
+            "opacity": 0
+          }
+        ],
+        "stats": {
+          "pixels": 9652311,
+          "totalAreaKm2": 7839.45,
+          "knownAreaKm2": 7830.98,
+          "unknownPct": 0.108,
+          "classes": {
+            "water": {
+              "value": 1,
+              "pixels": 766858,
+              "areaKm2": 622.37,
+              "pctOfKnown": 7.953
+            },
+            "not_water": {
+              "value": 0,
+              "pixels": 8875041,
+              "areaKm2": 7208.61,
+              "pctOfKnown": 92.047
+            },
+            "unknown": {
+              "value": 255,
+              "pixels": 10412,
+              "areaKm2": 8.46
+            }
+          },
+          "eventBox": {
+            "bbox": [
+              86.7,
+              25.1,
+              87.3,
+              25.5
+            ],
+            "pixels": 3307095,
+            "totalAreaKm2": 2684.88,
+            "knownAreaKm2": 2684.72,
+            "unknownPct": 0.006,
+            "classes": {
+              "water": {
+                "value": 1,
+                "pixels": 462221,
+                "areaKm2": 375.2,
+                "pctOfKnown": 13.978
+              },
+              "not_water": {
+                "value": 0,
+                "pixels": 2844670,
+                "areaKm2": 2309.52,
+                "pctOfKnown": 86.022
+              },
+              "unknown": {
+                "value": 255,
+                "pixels": 204,
+                "areaKm2": 0.17
+              }
+            }
+          },
+          "width": 3711,
+          "height": 2601,
+          "pixelSizeDeg": [
+            0.000269494585,
+            0.000269494585
+          ],
+          "pixelSizeM": [
+            27.1,
+            29.97
+          ],
+          "method": "Counted at the native resolution; each pixel's area is R² · Δφ · Δλ · cos(φ) at its row centre, R = 6371.0088 km (mean Earth radius). Percentages of known pixels leave out the unknown ones."
+        },
+        "source": {
+          "notebook": "flood_disaster.ipynb",
+          "role": "Reference labels for Part A water segmentation (NISAR HH/HV); \"Prepared binary references: 0=non-water, 1=water, 255=unknown\"",
+          "cells": "Part A: label inventory (cell 11), single-event check (12), EVENT_LABEL_FILES (14), multi-event dataset (30)",
+          "origin": null,
+          "date": null,
+          "provenanceNote": "The notebook does not say where these labels come from or which day they show. It pairs each with the event's NISAR flood-time (\"during\") scene, and one of its plots titles value 1 \"candidate new water\", so they are meant as the water at flood time, possibly flood water only rather than every river and lake.",
+          "file": "07_india_bihar_bhagalpur_water_reference.tif",
+          "band": "water_label",
+          "nodata": 255
+        },
+        "notes": [
+          "Covers a larger area than the event box; stats.eventBox gives the numbers inside the box.",
+          "The image is downsampled with an \"any water\" rule, so thin water looks a little wider than it is; the stats are counted at the native ~30 m.",
+          "Unknown pixels are transparent, like non-water ones; stats.unknownPct says how many there are."
+        ]
+      }
+    ],
+    "09_thailand_bangkok": [
+      {
+        "id": "water-reference",
+        "label": "Reference water extent",
+        "kind": "mask",
+        "description": "Water in the reference labels that the team notebook (flood_disaster.ipynb, Part A) uses to train and score its NISAR HH/HV water segmentation: 1 = water, 0 = not water, 255 = unknown. Shown here as the observed water around the event; it is not an output of this app.",
+        "time": null,
+        "crs": "EPSG:4326",
+        "bounds": [
+          [
+            13.3998098,
+            100.1999733
+          ],
+          [
+            14.2007477,
+            101.2003372
+          ]
+        ],
+        "extent": [
+          [
+            13.3998098,
+            100.1999733
+          ],
+          [
+            14.2007477,
+            101.2000677
+          ]
+        ],
+        "file": "events/09_thailand_bangkok/layers/water-reference.png",
+        "image": {
+          "format": "png",
+          "width": 1856,
+          "height": 1486,
+          "bytes": 195633,
+          "sha256": "47d5ce352275c4ec176a3b82c850c982d7f5d3adddc90de6af1c584cbd4fa8d5",
+          "downsample": 2,
+          "resolutionDeg": 0.00053898917,
+          "rule": "each image pixel covers 2 x 2 source pixels and shows the first class present in this order: Water, Not water"
+        },
+        "legend": [
+          {
+            "value": 1,
+            "key": "water",
+            "label": "Water",
+            "color": "#1a5cff",
+            "opacity": 0.8
+          },
+          {
+            "value": 0,
+            "key": "not_water",
+            "label": "Not water",
+            "color": null,
+            "opacity": 0
+          },
+          {
+            "value": 255,
+            "key": "unknown",
+            "label": "Unknown (no label)",
+            "color": null,
+            "opacity": 0
+          }
+        ],
+        "stats": {
+          "pixels": 11029092,
+          "totalAreaKm2": 9618.03,
+          "knownAreaKm2": 9607.08,
+          "unknownPct": 0.114,
+          "classes": {
+            "water": {
+              "value": 1,
+              "pixels": 934566,
+              "areaKm2": 814.59,
+              "pctOfKnown": 8.483
+            },
+            "not_water": {
+              "value": 0,
+              "pixels": 10081960,
+              "areaKm2": 8792.49,
+              "pctOfKnown": 91.517
+            },
+            "unknown": {
+              "value": 255,
+              "pixels": 12566,
+              "areaKm2": 10.96
+            }
+          },
+          "eventBox": {
+            "bbox": [
+              100.4,
+              13.6,
+              100.9,
+              14.1
+            ],
+            "pixels": 3442880,
+            "totalAreaKm2": 3001.77,
+            "knownAreaKm2": 3000.42,
+            "unknownPct": 0.045,
+            "classes": {
+              "water": {
+                "value": 1,
+                "pixels": 174626,
+                "areaKm2": 152.21,
+                "pctOfKnown": 5.074
+              },
+              "not_water": {
+                "value": 0,
+                "pixels": 3266703,
+                "areaKm2": 2848.21,
+                "pctOfKnown": 94.926
+              },
+              "unknown": {
+                "value": 255,
+                "pixels": 1551,
+                "areaKm2": 1.35
+              }
+            }
+          },
+          "width": 3711,
+          "height": 2972,
+          "pixelSizeDeg": [
+            0.000269494585,
+            0.000269494585
+          ],
+          "pixelSizeM": [
+            29.1,
+            29.97
+          ],
+          "method": "Counted at the native resolution; each pixel's area is R² · Δφ · Δλ · cos(φ) at its row centre, R = 6371.0088 km (mean Earth radius). Percentages of known pixels leave out the unknown ones."
+        },
+        "source": {
+          "notebook": "flood_disaster.ipynb",
+          "role": "Reference labels for Part A water segmentation (NISAR HH/HV); \"Prepared binary references: 0=non-water, 1=water, 255=unknown\"",
+          "cells": "Part A: label inventory (cell 11), single-event check (12), EVENT_LABEL_FILES (14), multi-event dataset (30)",
+          "origin": null,
+          "date": null,
+          "provenanceNote": "The notebook does not say where these labels come from or which day they show. It pairs each with the event's NISAR flood-time (\"during\") scene, and one of its plots titles value 1 \"candidate new water\", so they are meant as the water at flood time, possibly flood water only rather than every river and lake.",
+          "file": "09_thailand_bangkok_water_reference.tif",
+          "band": "water_label",
+          "nodata": 255
+        },
+        "notes": [
+          "Covers a larger area than the event box; stats.eventBox gives the numbers inside the box.",
+          "The image is downsampled with an \"any water\" rule, so thin water looks a little wider than it is; the stats are counted at the native ~30 m.",
+          "Unknown pixels are transparent, like non-water ones; stats.unknownPct says how many there are."
+        ]
+      }
+    ]
+  }
+}

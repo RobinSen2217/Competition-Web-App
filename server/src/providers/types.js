@@ -74,6 +74,55 @@
  */
 
 /**
+ * @typedef {Object} HazardTable        one event table, raw
+ * @property {string[]} columns          header
+ * @property {string[][]} rows           CSV cells as strings ("" = no value), file order
+ * @property {string} timeColumn         column holding the UTC date (YYYY-MM-DD)
+ * @property {'series'|'observation'} kind  one row per interval step, or irregular rows
+ * @property {string} updated            ISO time the file was written
+ */
+
+/**
+ * @typedef {Object} HazardProvider     hazard events and their data (src/providers/hazards.js).
+ *           Separate from DataProvider: hazards have events, not areas. Meaning
+ *           (labels, units, parameter -> table/column) lives in src/catalog/hazards.
+ *           Unknown hazards, events, tables or models give null / [] (never throw).
+ * @property {string} name
+ * @property {(hazardId: string) => Promise<Object|null>} getDataset
+ *           the dataset description without its events: { interval, generated,
+ *           description, tables, datasets, notes, updated }
+ * @property {(hazardId: string) => Promise<Object[]>} listEvents  raw event records
+ * @property {(hazardId: string, eventId: string) => Promise<Object|null>} getEvent
+ * @property {(hazardId: string, eventId: string, table: string) => Promise<HazardTable|null>} getTable
+ * @property {(hazardId: string, name: string) => Promise<Object|null>} getModel
+ *           a saved model result (e.g. "forecast"), with `updated`
+ * @property {(hazardId: string) => Promise<Object<string, HazardLayerRecord[]>>} [getLayers]
+ *           map layers per event id ({} when none); optional, a provider without
+ *           layers leaves it out
+ * @property {(hazardId: string, eventId: string, layerId: string) => Promise<{path: string, type: string,
+ *           size: number, updated: string}|null>} [getLayerFile]  a layer's overlay image on disk
+ */
+
+/**
+ * @typedef {Object} HazardLayerRecord  one map layer of an event, as the importer wrote it
+ *           (server/ml forecaster/hazards/layers.py); carries its own meaning, so a new
+ *           kind of layer needs no catalog entry
+ * @property {string} id                 URL-safe, unique within the event ("water-reference")
+ * @property {string} label
+ * @property {'mask'|'raster'} kind       mask: classes (legend values); raster: a continuous value
+ * @property {string} description
+ * @property {string|null} [time]        what moment it shows, if known
+ * @property {string} crs                "EPSG:4326"
+ * @property {[[number, number], [number, number]]} bounds  image corners [[south, west], [north, east]]
+ * @property {string} file               image path relative to the hazard folder
+ * @property {{format: string, width: number, height: number, bytes: number, sha256: string}} image
+ * @property {{value: number, key: string, label: string, color: string|null, opacity: number}[]} legend
+ * @property {Object} stats              numbers computed at native resolution
+ * @property {Object} source
+ * @property {string[]} [notes]
+ */
+
+/**
  * @typedef {Object} DataProvider
  * @property {string} name
  * @property {() => Promise<AreaRecord[]>} listAreas

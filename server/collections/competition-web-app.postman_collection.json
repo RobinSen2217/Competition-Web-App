@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Competition Web App API v1",
-    "description": "REST API v1 serving the Competition Web App data (areas, parameters, timeseries, map layers and their values, forecasts, basemap). Full reference: server/docs/API.md. Set the baseUrl variable to point at another server. Expected status for each request is in its description.",
+    "description": "REST API v1 serving the Competition Web App data (areas, parameters, timeseries, map layers and their values, forecasts, hazards, basemap). Full reference: server/docs/API.md. Set the baseUrl variable to point at another server. Expected status for each request is in its description.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -763,6 +763,546 @@
               ]
             },
             "description": "Models always come back in the order ridge, nn, gbm. Expect 200 (503 no_gee_data until extracted)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Hazards",
+      "item": [
+        {
+          "name": "Hazards",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards"
+              ]
+            },
+            "description": "Hazard types (flood today) and what each provides: events, daily parameters, observations, and the forecast with its danger classes, models and thresholds. Expect 200."
+          }
+        },
+        {
+          "name": "Hazard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood"
+              ]
+            },
+            "description": "One hazard plus its dataset (tables and their columns, source datasets and citations, notes) and the forecast model: thresholds, out-of-fold and held-out test scores, threshold sweep, feature importance, which events trained and tested it, and the check against the notebook. Expect 200."
+          }
+        },
+        {
+          "name": "Hazard parameters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/parameters",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "parameters"
+              ]
+            },
+            "description": "What can be plotted for a flood event: daily rainfall series (box average, wettest cell, 3- and 7-day totals), the reported-flood-period flag, and the soil moisture passes (kind \"observation\"). Labels, units, sources. Expect 200."
+          }
+        },
+        {
+          "name": "Hazard parameter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/parameters/soil_moisture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "parameters",
+                "soil_moisture"
+              ]
+            },
+            "description": "One parameter, with the context columns that come with each observation (track, phase, ...). Expect 200."
+          }
+        },
+        {
+          "name": "Hazard events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events"
+              ]
+            },
+            "description": "Every flood event: name, country, admin area, period, bbox [west, south, east, north], center, cause, data coverage, and whether and how it has a forecast (Nepal: excluded, not a rain flood). Expect 200 with 10 events."
+          }
+        },
+        {
+          "name": "Hazard events (countries)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events?country=IN,BD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "country",
+                  "value": "IN,BD"
+                }
+              ]
+            },
+            "description": "Filter by ISO country code or name, case-insensitive. Expect 200 with the two Bihar events and Chattogram."
+          }
+        },
+        {
+          "name": "Hazard events (bbox)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events?bbox=60,5,100,40",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "bbox",
+                  "value": "60,5,100,40"
+                }
+              ]
+            },
+            "description": "Events whose box overlaps west,south,east,north (degrees; west > east crosses the antimeridian). Expect 200 with Pakistan, Nepal, Patna, Bhagalpur and Chattogram."
+          }
+        },
+        {
+          "name": "Hazard event",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "07_india_bihar_bhagalpur"
+              ]
+            },
+            "description": "One event with notes, a summary (rain before and during the flood, soil passes), attributes, sources (citations and source files) and links. Expect 200."
+          }
+        },
+        {
+          "name": "Hazard events (with layers)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events?include=layers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "include",
+                  "value": "layers"
+                }
+              ]
+            },
+            "description": "Every event with its map layers embedded (data[].layers); coverage.layers lists the layer ids of each event ([] when none). Expect 200."
+          }
+        },
+        {
+          "name": "Hazard event (with layers)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur?include=layers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "07_india_bihar_bhagalpur"
+              ],
+              "query": [
+                {
+                  "key": "include",
+                  "value": "layers"
+                }
+              ]
+            },
+            "description": "One event plus its full layer objects in data.layers. Expect 200."
+          }
+        },
+        {
+          "name": "Event timeseries (everything)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur/timeseries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "07_india_bihar_bhagalpur",
+                "timeseries"
+              ]
+            },
+            "description": "Every parameter: data.series holds the daily series aligned with data.times; data.observations holds the soil moisture passes, each with its own times, values and context. Expect 200."
+          }
+        },
+        {
+          "name": "Event timeseries (rain and soil, dates)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur/timeseries?parameters=rain_box_mm,rain_box_3d_mm,in_flood_period,soil_moisture&from=2026-09-01&to=2026-09-15",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "07_india_bihar_bhagalpur",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "parameters",
+                  "value": "rain_box_mm,rain_box_3d_mm,in_flood_period,soil_moisture"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-09-15"
+                }
+              ]
+            },
+            "description": "Chosen parameters and an inclusive UTC date range (YYYY-MM-DD). The 3-day total on the first day still counts the days before it. Expect 200 with 15 days."
+          }
+        },
+        {
+          "name": "Event forecast (test event)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur/forecast",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "07_india_bihar_bhagalpur",
+                "forecast"
+              ]
+            },
+            "description": "Per day: each model's probability of the flood within the next 3 days, its threshold and the danger class (probability >= threshold), the actual outcome, the inputs, and the scores. A held-out test event, scored by the final model (evaluation.role \"test\"). Expect 200."
+          }
+        },
+        {
+          "name": "Event forecast (training event, one model)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/01_mozambique_limpopo/forecast?models=rain_soil&from=2026-01-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "01_mozambique_limpopo",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "models",
+                  "value": "rain_soil"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01"
+                }
+              ]
+            },
+            "description": "A training event is scored out-of-fold (evaluation.role \"out_of_fold\"; fold and foldEvents say which cross-validation model held it out). One model, days from 1 Jan. Expect 200."
+          }
+        },
+        {
+          "name": "Event forecast (excluded event)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/05_nepal_trishuli/forecast",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "05_nepal_trishuli",
+                "forecast"
+              ]
+            },
+            "description": "Nepal is kept as data but left out of the model, as in the notebook (a glacier collapse, not rain). Expect 200 with data.available false and evaluation.reason."
+          }
+        },
+        {
+          "name": "Event layers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur/layers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "07_india_bihar_bhagalpur",
+                "layers"
+              ]
+            },
+            "description": "The event's map layers: today the reference water extent (water-reference) of the notebook's Part A labels, with bounds [[south, west], [north, east]], legend, stats (water km², % of known pixels, unknown %, inside the event box), source and the image url. Expect 200 with meta.count 1. An event without layers returns []."
+          }
+        },
+        {
+          "name": "Event layer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/09_thailand_bangkok/layers/water-reference",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "09_thailand_bangkok",
+                "layers",
+                "water-reference"
+              ]
+            },
+            "description": "One layer. data.url is the overlay PNG on this API (prefix the API origin); its ?v= is the image hash. Expect 200."
+          }
+        },
+        {
+          "name": "Event layer image",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "image/png"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/02_china_guangxi/layers/water-reference/image",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "02_china_guangxi",
+                "layers",
+                "water-reference",
+                "image"
+              ]
+            },
+            "description": "The overlay PNG itself (Content-Type image/png, Cache-Control public, max-age=86400, ETag). Transparent except water (#1a5cff at 80%). Expect 200."
           }
         }
       ]
@@ -1540,6 +2080,315 @@
               ]
             },
             "description": "Needs an area with an extracted table and a module that fails: FORECAST_PYTHON=/usr/bin/false npm start. Without a saved forecast expect 502 model_failure; with one, 200 with data.source \"snapshot\" and meta.fallback \"model_failure\". 200 live with a working module."
+          }
+        },
+        {
+          "name": "Hazard: unknown hazard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/volcano",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "volcano"
+              ]
+            },
+            "description": "Expect 404 not_found (details.valid lists the hazards)."
+          }
+        },
+        {
+          "name": "Hazard: unknown event",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/99_atlantis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "99_atlantis"
+              ]
+            },
+            "description": "Expect 404 not_found (details.hazard, details.eventId)."
+          }
+        },
+        {
+          "name": "Hazard: unknown parameter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/02_china_guangxi/timeseries?parameters=rain_box_mm,ndvi",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "02_china_guangxi",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "parameters",
+                  "value": "rain_box_mm,ndvi"
+                }
+              ]
+            },
+            "description": "Expect 400 invalid_parameter (details.unknown, details.valid)."
+          }
+        },
+        {
+          "name": "Hazard: bad date",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/02_china_guangxi/timeseries?from=2026-07",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "02_china_guangxi",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-07"
+                }
+              ]
+            },
+            "description": "Hazard series are daily. Expect 400 invalid_query (details.format = \"YYYY-MM-DD\")."
+          }
+        },
+        {
+          "name": "Hazard: unsupported interval",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/02_china_guangxi/timeseries?interval=monthly",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "02_china_guangxi",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "interval",
+                  "value": "monthly"
+                }
+              ]
+            },
+            "description": "Expect 400 unsupported_interval (details.supported = [\"daily\"])."
+          }
+        },
+        {
+          "name": "Hazard: bad bbox",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events?bbox=60,5,100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "bbox",
+                  "value": "60,5,100"
+                }
+              ]
+            },
+            "description": "Expect 400 invalid_query (details.format = \"west,south,east,north\")."
+          }
+        },
+        {
+          "name": "Hazard: unknown model",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/02_china_guangxi/forecast?models=rain,xgboost",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "02_china_guangxi",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "models",
+                  "value": "rain,xgboost"
+                }
+              ]
+            },
+            "description": "Expect 400 invalid_query (details.allowed = [\"rain\", \"rain_soil\"])."
+          }
+        },
+        {
+          "name": "Hazard: forecast not built",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/02_china_guangxi/forecast",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "02_china_guangxi",
+                "forecast"
+              ]
+            },
+            "description": "Only when server/data/hazards/flood/model/forecast.json is missing (the model has not been built: python -m forecaster.hazards build flood): 503 forecast_unavailable with details.reason \"no_model\". Expect 200 with the committed data."
+          }
+        },
+        {
+          "name": "Hazard: unknown layer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events/07_india_bihar_bhagalpur/layers/depth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events",
+                "07_india_bihar_bhagalpur",
+                "layers",
+                "depth"
+              ]
+            },
+            "description": "Expect 404 not_found (details.layerId, details.valid = [\"water-reference\"])."
+          }
+        },
+        {
+          "name": "Hazard: unknown include",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hazards/flood/events?include=boundary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hazards",
+                "flood",
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "include",
+                  "value": "boundary"
+                }
+              ]
+            },
+            "description": "Events offer include=layers only. Expect 400 invalid_query (details.allowed = [\"layers\"])."
           }
         },
         {

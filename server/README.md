@@ -2,14 +2,17 @@
 
 Express 5 API that serves the website's data: areas (cities), monthly climate
 and vegetation series, district outlines, map layers with their per-pixel
-values, basemap metadata and machine-learning forecasts of vegetation
-greenness. The API is versioned under **`/api/v1`** and
+values, basemap metadata, machine-learning forecasts of vegetation
+greenness, and hazard events (floods) with their daily rainfall, soil
+moisture passes and a 3-day flood forecast with danger classes. The API is versioned under **`/api/v1`** and
 documented in **[docs/API.md](docs/API.md)** (conventions, every endpoint,
 error codes, planned endpoints, how to extend it).
 
 For now the data comes from the JSON files in `data/` (the same data the website
 used to bundle). The forecasts are the exception: they run on Earth Engine
-tables downloaded by `npm run gee:extract` (see [Forecasts](#forecasts)).
+tables downloaded by `npm run gee:extract` (see [Forecasts](#forecasts)), and
+the hazards are read from `data/hazards/`, written by the Python package in
+`ml/` (see [Hazards](#hazards)).
 Nothing else is pulled live from NASA or Earth Engine yet; see
 [Later: live data](#later-live-data). The code is built so a live source plugs
 in as another *provider* without touching routes.
@@ -62,24 +65,31 @@ src/http/                HTTP plumbing shared by all routes
   query.js               query conventions: lists, "*", repeats, interval, from/to, include
   route.js               getOnly(): GET/HEAD route with 405 for other methods
 src/routes/v1/           one file per resource: health, parameters, areas, timeseries,
-                         layers, basemap; index.js mounts them under /api/v1
+                         layers, forecasts, hazards, basemap; index.js mounts them under /api/v1
 src/services/            logic between routes and provider, one file per resource:
                          catalog validation, "*" resolution, includes, interval checks
 src/catalog/             what things mean, declarative and easy to extend:
   parameters.js          labels, units, aggregation of every parameter
   layers.js              what each map layer means (title, source, value scale/unit)
-  intervals.js           time intervals and their time formats (monthly series, yearly layer times)
+  intervals.js           time intervals and their time formats (monthly series, daily hazard
+                         series, yearly layer times)
+  hazards/               hazard types: index.js (registry, evaluation roles) + one file per
+                         hazard (flood.js: its parameters, tables/columns, forecast snapshot)
 src/providers/           where the numbers come from
   types.js               the provider contract (JSDoc), all methods async
   files.js               reads data/ once at startup and adapts it to the contract
   index.js               picks the provider from DATA_PROVIDER
+  hazards.js             the hazard provider: reads data/hazards/<hazard>/ (events.json,
+                         per-event CSVs, model snapshots, layers.json + layer images),
+                         re-reads files when they change
+src/util/csv.js          CSV parser shared by the Earth Engine tables and the hazard tables
 src/catalog/forecasts.js forecastable parameters, their input series, models, horizon limits
 src/forecast/            how forecasts are computed and saved
   runner.js              runs the forecasting module (python -m forecaster) per request;
                          replaceable by any object with run(request) -> Promise<response>
   snapshots.js           reads, trims and writes saved forecasts (data/forecasts/)
   tables.js              reads the Earth Engine feature tables (data/gee/) the forecasts run on
-ml/                      the forecasting module (Python "black box", own README and tests)
+ml/                      the forecasting module and the hazard import/models (Python, own README and tests)
 scripts/build-forecasts.js  npm run forecasts:build: saves a forecast snapshot per area with a table
 scripts/gee.js           npm run gee:check / gee:extract: the Earth Engine pipeline in ml/ with .env credentials
 docs/API.md              API reference
@@ -111,6 +121,14 @@ Full reference with examples: [docs/API.md](docs/API.md).
 | `GET /api/v1/areas/:areaId/layers/:layerId/values[?time=]` | per-pixel integer grids behind a layer |
 | `GET /api/v1/areas/:areaId/forecasts[?parameters=ndvi&horizon=12&models=ridge,nn,gbm]` | NDVI forecast by three ML models, with accuracy, back-test and drivers |
 | `GET /api/v1/basemap` | satellite mosaics (bounds, zoom, image paths) |
+| `GET /api/v1/hazards[/:hazard]` | hazard types (flood) and what each provides; one with its dataset and model scores |
+| `GET /api/v1/hazards/:hazard/parameters[/:key]` | what can be plotted for an event: daily series and irregular observations |
+| `GET /api/v1/hazards/:hazard/events[?country=&bbox=&include=layers]` | events with country, period, bbox, cause, coverage (incl. layer ids), forecast status |
+| `GET /api/v1/hazards/:hazard/events/:eventId[?include=layers]` | one event with notes, summary and sources |
+| `GET /api/v1/hazards/:hazard/events/:eventId/layers[/:layerId]` | the event's map layers (e.g. the reference water extent): bounds, legend, stats, source, image url |
+| `GET /api/v1/hazards/:hazard/events/:eventId/layers/:layerId/image` | the layer's overlay PNG (cached for a day) |
+| `GET /api/v1/hazards/:hazard/events/:eventId/timeseries[?parameters=&from=&to=]` | daily rainfall and flood-period flag, soil moisture passes |
+| `GET /api/v1/hazards/:hazard/events/:eventId/forecast[?models=&from=&to=]` | per day: flood probability, threshold and danger class per model, actual outcome, scores |
 
 Success: `{ "data": ..., "meta": {...} }`. Errors:
 `{ "error": { "status", "code", "message", "details"? } }` with codes
@@ -137,6 +155,7 @@ random port:
 | `forecast-tables.test.js` | reading the feature tables: CSV as pandas writes it, `areas.json`, re-reading after an extraction |
 | `forecast-runner.test.js` | the process runner against a stand-in script: stdin/stdout contract, exit codes, timeout, queueing |
 | `forecast-integration.test.js` | the real Python module on the fake tables through the API, and that it is deterministic (skips without `ml/.venv`) |
+| `hazards.test.js` | every `/hazards` endpoint on the committed flood dataset, cross-checked with its files and model snapshot: filters (`country`, `bbox`), series and observations, derived rain totals equal to the model inputs, danger classes, out-of-fold vs test roles, Nepal excluded, every error, a dataset without a model (`503 no_model`) or without data, re-reading changed files; event layers (records, stats, the PNG with cache headers and 304, any kind and number of layers, paths that would leave the folder refused) |
 
 The tables in `test/fixtures/gee/` are **synthetic** (seasonal curves and seeded
 noise in the notebook's exact 33-column layout, written by
@@ -157,7 +176,7 @@ IDEs run the same file with their built-in HTTP client.
 http://localhost:5050/api/v1/areas/jaipur/timeseries?parameters=ndvi&from=2024-01 directly.
 
 **Postman, Bruno or Insomnia.** `collections/competition-web-app.postman_collection.json`
-is a Postman v2.1 collection (Service, Areas, Timeseries, Layers, Forecasts, Basemap and
+is a Postman v2.1 collection (Service, Areas, Timeseries, Layers, Forecasts, Hazards, Basemap and
 Errors folders) that these apps import for free. Requests use the `{{baseUrl}}`
 variable, default `http://localhost:5050`. Thunder Client can import it too, but
 importing collections needs a paid Thunder Client plan.
@@ -259,6 +278,46 @@ were deleted and are ignored if one turns up again (they lack `provenance`).
 Without Python and without saved forecasts, `/forecasts` answers
 `503 forecast_unavailable`; every other endpoint works as before.
 
+## Hazards
+
+`/api/v1/hazards` is the Disaster module. Today it serves **floods**: 10
+events from the team notebook `flood_disaster.ipynb` with their daily
+satellite rainfall (GPM IMERG) and NISAR soil moisture passes, and the
+notebook's Part B forecast: two Random Forests ("rainfall only",
+"rainfall + soil moisture") giving, for every day, the probability of the
+flood within the next 3 days and a **danger** class when it reaches the
+model's threshold (0.55 / 0.75, chosen out-of-fold as in the notebook).
+Reference: [docs/API.md, Hazards](docs/API.md#hazards).
+
+Unlike the NDVI forecast, nothing runs per request: both steps run once in
+`ml/` (see [ml/README.md, Hazards](ml/README.md#hazards)) and write files the
+API reads (`data/hazards/flood/`):
+
+```sh
+cd server/ml
+# 1. the team's extracted folders (from rainfall.zip and soil_moisture.zip) -> data/hazards/flood/
+./hazards-python -m forecaster.hazards import flood --rainfall /path/to/rainfall --soil /path/to/soil_moisture
+# 2. the model -> data/hazards/flood/model/forecast.json
+./hazards-python -m forecaster.hazards build flood
+# 3. (optional) map layers: the notebook's <event>_water_reference.tif files
+#    -> data/hazards/flood/layers.json + events/<event>/layers/water-reference.png
+./hazards-python -m forecaster.hazards import flood --layers /path/to/folder-with-tifs
+```
+
+Step 3 keeps only the derived overlay PNGs (a few hundred KB each) and their
+stats; the source GeoTIFFs are not committed, so keep them to rebuild.
+
+The hazard step has its **own Python environment**, `ml/.venv-hazards`
+(`requirements-hazards.txt`): the notebook's numbers need scikit-learn 1.8
+(1.9 changed how random forests sample), and the NDVI module stays on its own
+pins. On an Apple Silicon Mac create it as x86-64, like Colab, to get the
+notebook's numbers bit for bit (`arch -x86_64 python3.12 -m venv .venv-hazards`,
+then `arch -x86_64 .venv-hazards/bin/pip install -r requirements-hazards.txt`).
+`./hazards-python` then runs it under Rosetta by itself, so the commands above
+work unchanged with either venv; see the ml README for what differs on arm64. The server needs neither: the committed files are enough.
+Commit `data/hazards/` after an import or a build; the running server picks
+the files up without a restart.
+
 ## Data files
 
 The files provider (`src/providers/files.js`) reads these once at startup and
@@ -275,6 +334,12 @@ adapts them to the generic model; the files themselves keep their original shape
 | `data/gee/areas.json` | `[{ id, name, lat, lon, halfWidthKm, state }]`: the box each area's Earth Engine table is extracted for (centres from `climate.json`; Jaisalmer's is the notebook's) | read by `npm run gee:extract` and `/forecasts` |
 | `data/gee/<id>.features.csv` | the notebook's monthly feature table, written by `npm run gee:extract` (versioned by its own file time, not part of `dataUpdated`) | the input of `/areas/:id/forecasts` |
 | `data/forecasts/<id>.<param>.json` | saved forecasts written by `npm run forecasts:build` (not data: rebuilding them does not change `dataUpdated`) | `/areas/:id/forecasts` when the module cannot run |
+| `data/hazards/<hazard>/events.json` | the hazard's events (country, period, bbox, cause, coverage, sources), its tables and their columns, source datasets; written by the hazard import in `ml/` (read by `src/providers/hazards.js`, re-read when it changes, not part of `/health` `dataUpdated`) | `/hazards`, `/hazards/:hazard/events[/:eventId]` |
+| `data/hazards/<hazard>/events/<eventId>/*.csv` | per-event tables; flood: `daily.csv` (rain, flood-period flag) and `soil_passes.csv` (satellite passes) | `/hazards/:hazard/events/:eventId/timeseries` |
+| `data/hazards/<hazard>/model/forecast.json` | the hazard model's results for every event and day, written by `python -m forecaster.hazards build <hazard>` | `/hazards/:hazard[/events/:eventId/forecast]` |
+| `data/hazards/<hazard>/layers.json` | optional map layers per event: label, kind, bounds, legend, stats (native resolution), source, image size and hash; written by `import <hazard> --layers` | `/hazards/:hazard/events/:eventId/layers[/:layerId]`, `coverage.layers`, `include=layers` |
+| `data/hazards/<hazard>/events/<eventId>/layers/<layerId>.png` | a layer's overlay image (EPSG:4326, the record's bounds) | `/hazards/:hazard/events/:eventId/layers/:layerId/image` |
+| `data/hazards/<hazard>/README.md` | what the dataset holds, generated with it | |
 
 These started as byte-identical copies of `client/src/data/*.json` and
 `client/public/map/raster/<id>/values.json`; `test/data.test.js` checks they

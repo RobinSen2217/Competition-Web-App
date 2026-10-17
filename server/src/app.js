@@ -1,8 +1,9 @@
 // Builds the Express app (CORS, the /api/v1 router, 404 and error handling)
 // without starting it, so index.js can listen on PORT and tests can listen on
-// a random port. createApp({ provider, forecastRunner, forecastTablesDir }) lets
-// tests or tools inject a provider, a stand-in for the forecasting module or
-// another folder of Earth Engine feature tables.
+// a random port. createApp({ provider, forecastRunner, forecastTablesDir,
+// hazardProvider, hazardsDir }) lets tests or tools inject a provider, a
+// stand-in for the forecasting module, another folder of Earth Engine feature
+// tables, or another hazard provider / hazards folder.
 
 const express = require('express')
 const cors = require('cors')
@@ -22,7 +23,7 @@ function defaultRunner(config) {
   })
 }
 
-function createApp({ config = loadConfig(), provider, forecastRunner, forecastSnapshotDir, forecastTablesDir } = {}) {
+function createApp({ config = loadConfig(), provider, forecastRunner, forecastSnapshotDir, forecastTablesDir, hazardProvider, hazardsDir } = {}) {
   const app = express()
   app.disable('x-powered-by')
   // Routes reach the services through req.app.locals (see http/route.js).
@@ -33,6 +34,8 @@ function createApp({ config = loadConfig(), provider, forecastRunner, forecastSn
     forecastSnapshotDir,
     forecastTablesDir,
     forecastRetryAfterMs: config.forecastRetryAfterMs,
+    hazardProvider,
+    hazardsDir,
   })
 
   app.use(cors({ origin: config.corsOrigins, methods: ['GET', 'HEAD', 'OPTIONS'] }))
