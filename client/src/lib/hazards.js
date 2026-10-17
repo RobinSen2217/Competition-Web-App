@@ -31,9 +31,9 @@
     has that resource; if it does not, the API's error is the one shown.
 */
 import { DATA_SOURCE, load, useResource } from './store'
-import { ApiError, apiGet } from './api'
+import { API_BASE, ApiError, apiGet } from './api'
 import { asset } from './asset'
-import { snapshotFile } from './hazardPaths'
+import { snapshotFile, snapshotLayerImage } from './hazardPaths'
 
 // The API is known to be awake here (the site booted on it), but a forecast
 // or a long event's series can be a few hundred KB on a slow connection.
@@ -92,16 +92,14 @@ function hazardSource() {
   return sourcePromise
 }
 
-/**
- * The envelope ({ data, meta }) of one hazard resource, from whichever source
- * is in use. Not cached itself; the getters below cache through load().
- * @param {string} path  relative to /api/v1, without a query
- */
-export async function hazardGet(path) {
-  if ((await hazardSource()) === 'snapshot') return fromSnapshot(path)
-  if (path === '/hazards' && probeBody) return probeBody
+// { body, from: 'api' | 'snapshot' } of one resource; `from` says which source
+// actually answered (a single API failure can fall back to the saved copy),
+// for answers that point at more files, like a layer's image.
+async function hazardFetch(path) {
+  if ((await hazardSource()) === 'snapshot') return { body: await fromSnapshot(path), from: 'snapshot' }
+  if (path === '/hazards' && probeBody) return { body: probeBody, from: 'api' }
   try {
-    return await fromApi(path)
+    return { body: await fromApi(path), from: 'api' }
   } catch (e) {
     // A real "no such thing" from the API is the answer; anything else
     // (network, timeout, server error) may still be in the saved copy.
@@ -109,12 +107,19 @@ export async function hazardGet(path) {
     try {
       const body = await fromSnapshot(path)
       console.warn(`[hazards] ${path}: API failed (${e.message}); using the saved copy`)
-      return body
+      return { body, from: 'snapshot' }
     } catch {
       throw e
     }
   }
 }
+
+/**
+ * The envelope ({ data, meta }) of one hazard resource, from whichever source
+ * is in use. Not cached itself; the getters below cache through load().
+ * @param {string} path  relative to /api/v1, without a query
+ */
+export const hazardGet = async (path) => (await hazardFetch(path)).body
 
 // Envelope -> payload, with a minimal shape check so a half-deployed server
 // fails here with a clear message instead of deep inside a chart.
@@ -122,6 +127,20 @@ async function payload(path, check) {
   const { data } = await hazardGet(path)
   if (!check(data)) throw new ApiError(`${path}: unexpected response`, { code: 'bad_response' })
   return data
+}
+
+// An event's layers, each with `imageSrc`: the overlay image from the source
+// that answered. The API's `url` is a path on the API (prefix its origin); the
+// saved copy keeps that url, so its image is the saved file next to it.
+async function eventLayers(h, e) {
+  const path = `${eventPath(h, e)}/layers`
+  const { body, from } = await hazardFetch(path)
+  if (!Array.isArray(body.data)) throw new ApiError(`${path}: unexpected response`, { code: 'bad_response' })
+  return body.data.map((layer) => {
+    const file = from === 'snapshot' ? snapshotLayerImage(h, e, layer) : null
+    const imageSrc = from === 'api' ? (typeof layer.url === 'string' ? API_BASE + layer.url : null) : file && asset(`/data/hazards/${file}`)
+    return { ...layer, imageSrc }
+  })
 }
 
 const seg = (id) => encodeURIComponent(id)
@@ -138,6 +157,7 @@ const loaders = {
   event: (h, e) => payload(eventPath(h, e), (d) => isObj(d) && d.id === e),
   timeseries: (h, e) => payload(`${eventPath(h, e)}/timeseries`, (d) => isObj(d) && Array.isArray(d.times) && isObj(d.series) && isObj(d.observations)),
   forecast: (h, e) => payload(`${eventPath(h, e)}/forecast`, (d) => isObj(d) && Array.isArray(d.times) && isObj(d.models)),
+  layers: eventLayers,
 }
 
 const keyOf = (kind, ...ids) => `hz:${kind}:${ids.join('/')}`
@@ -194,3 +214,11 @@ export const useEventTimeseries = (hazard, eventId, opts) => useHz('timeseries',
  * fold, foldEvents, metrics } }, inputs, provenance, ... }.
  */
 export const useEventForecast = (hazard, eventId, opts) => useHz('forecast', [hazard, eventId], opts)
+
+/**
+ * The event's map layers (overlay images), [] when it has none: [{ id, label,
+ * kind, description, time, bounds: [[s, w], [n, e]], legend, stats, source:
+ * { provenanceNote, ... }, notes, url, image, imageSrc }]. `imageSrc` is
+ * added here: the image's address from whichever source answered.
+ */
+export const useEventLayers = (hazard, eventId, opts) => useHz('layers', [hazard, eventId], opts)

@@ -275,3 +275,10 @@ hazards, events or parameters need no client change. When the site has no API, o
 npm run hazards:snapshot                            # from the API at http://localhost:5050
 npm run hazards:snapshot -- http://localhost:5097   # or another server
 ```
+
+The copy includes each event's map layers (`events/<id>/layers.json`) and their overlay images
+(`events/<id>/layers/<layerId>.png`). On the flood page's map (`components/flood/EventMap.jsx`) the selected event's
+layers are drawn as Leaflet image overlays under the event boxes, with a panel for showing/hiding them, zooming to
+them, the legend, the API's area numbers (whole image and inside the event box) and its note on where the layer comes
+from. A layer's `url` is a path on the API, so `lib/hazards.js` adds the API's origin, or points at the saved image
+when the answer came from the copy (`imageSrc`). Events whose `coverage.layers` is empty make no layer request.
