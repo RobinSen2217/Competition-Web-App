@@ -51,7 +51,7 @@ src/
     data.js                 the single access point for all data: loads it from the API (or the bundle)
     api.js                  v1 API client: request helper, startup requests, v1 -> internal converters
     months.js params.js     month helpers, parameter definitions and number formatting
-    stats.js                climatology, anomalies, OLS, correlation, baseline forecast
+    stats.js                climatology, anomalies, OLS, correlation
     forecasts.js            ML forecast loader: live API run, or the saved snapshot (see "Forecasts")
     chart.js                small SVG line-chart engine (used through components/common/Chart)
     download.js storage.js theme.js
@@ -64,7 +64,7 @@ src/
                             Seg, Btn, Select, Toggle, Readout, Note ...
     common/                 Chart, Sparkline
     layout/                 Nav (app name, partner logos, page tabs), Footer (vegetation page)
-    sections/               Hero, Glance, PlotBuilder, Why, Outlook, ModelForecast, Compare, Intro,
+    sections/               Hero, Glance, PlotBuilder, Why, ModelForecast, Compare, Intro,
                             Science, Methods, Sources, Faq
     map/                    MapExplorer and its rail, planner and hooks
   styles/classes.js         shared class strings (cx, noteCls, selectCls, rangeCls)
@@ -174,11 +174,9 @@ a boundary and three mosaics (its map layers show when it has the four MODIS lay
 
 ## Forecasts
 
-The page's "Forecast" part has two cards:
+The page's "Forecast" part has one card (the prototype's statistical baseline
+was removed so the page shows only the team's models):
 
-- **Outlook** (`sections/Outlook.jsx`): a quick statistical baseline (usual value
-  for the month + trend + recent anomaly) computed in the browser by
-  `lib/stats.js`, for six parameters, 3 or 6 months ahead.
 - **Machine-learning forecast** (`sections/ModelForecast.jsx`, card id
   `mlforecast`): the team notebook's three models (Ridge regression, a small
   neural network and gradient boosting), trained per city on its monthly NDVI,

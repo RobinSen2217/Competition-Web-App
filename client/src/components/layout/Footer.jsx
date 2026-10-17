@@ -20,7 +20,7 @@ export default function Footer() {
         <a className={linkCls} href="#glance">Overview of data</a>
         <a className={linkCls} href="#features">Data analysis</a>
         <a className={linkCls} href="#where">Map / Plot</a>
-        <a className={linkCls} href="#outlook">Forecast</a>
+        <a className={linkCls} href="#mlforecast">Forecast</a>
       </div>
       <div>
         <b className={headCls}>Project</b>

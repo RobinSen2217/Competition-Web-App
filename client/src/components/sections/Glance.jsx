@@ -1,16 +1,16 @@
 import { useMemo } from 'react'
 import { DATA, M, ser } from '../../lib/data'
-import { MON, FIRST_YEAR, mLabel, mOf, yOf } from '../../lib/months'
-import { clim, forecast, lastIdx, mean, ndviStatus } from '../../lib/stats'
+import { MON, mLabel, mOf, yOf } from '../../lib/months'
+import { clim, lastIdx, mean, ndviStatus } from '../../lib/stats'
 import { css } from '../../lib/theme'
 import { useApp } from '../../state/appContext'
 import useThemeVersion from '../../hooks/useThemeVersion'
 import Sparkline from '../common/Sparkline'
 import { Card, CardHead, Chip, Kicker, Lede } from '../ui'
 
-// "At a glance": five headline cards for the selected city (greenness, monsoon
-// rainfall, air temperature, surface soil moisture and a 3-month greenness
-// outlook), each compared with what is usual for that time of year.
+// "At a glance": four headline cards for the selected city (greenness, monsoon
+// rainfall, air temperature and surface soil moisture), each compared with what
+// is usual for that time of year.
 
 // Jun, Jul, Aug, Sep as 0-based month numbers: the Indian summer monsoon.
 const MONSOON = [5, 6, 7, 8]
@@ -76,19 +76,10 @@ export default function Glance() {
     // in percentage points of saturation.
     const sm = ser(c, 'sm_top'), ls = lastIdx(sm), smc = clim(sm), smd = sm[ls] - smc[mOf(ls)]
 
-    // Outlook: the 3rd forecast month, as a % departure from its usual value.
-    // forecast() returns null when there is too little data; the card is then hidden.
-    const f = forecast(ser(c, 'ndvi'), 3)
-    const fEnd = f ? f.out[2] : null
-    const fd = f ? ((fEnd.v - f.clim[fEnd.m]) / f.clim[fEnd.m]) * 100 : 0
-    // fEnd.i can lie past the end of DATA.months, so yOf() cannot be used;
-    // the series starts in January of FIRST_YEAR, hence i / 12.
-    const fYear = f ? Math.floor(fEnd.i / 12) + FIRST_YEAR : null
-
-    return { nd, rain, rNow, rNorm, rLab, rd, t, td, base, sm, ls, smc, smd, f, fEnd, fd, fYear }
+    return { nd, rain, rNow, rNorm, rLab, rd, t, td, base, sm, ls, smc, smd }
   }, [c])
 
-  const { nd, rain, rNow, rNorm, rLab, rd, t, td, base, sm, ls, smc, smd, f, fEnd, fd, fYear } = g
+  const { nd, rain, rNow, rNorm, rLab, rd, t, td, base, sm, ls, smc, smd } = g
 
   return (
     <Card id="glance" aria-labelledby="glanceT">
@@ -137,15 +128,6 @@ export default function Glance() {
         >
           <Sparkline className={sparkCls} data={sm} color={css('--s2')} />
         </GlanceCard>
-        {f && (
-          <GlanceCard
-            lab="Greenness outlook"
-            big={fEnd.v.toFixed(2)}
-            unit="NDVI"
-            chip={fd >= 5 ? ['good', 'Greener than usual ahead'] : fd <= -5 ? ['bad', 'Below usual ahead'] : ['neutral', 'Near usual ahead']}
-            txt={`Expected for ${MON[fEnd.m]} ${fYear}, range ${fEnd.lo.toFixed(2)}–${fEnd.hi.toFixed(2)}.`}
-          />
-        )}
       </div>
     </Card>
   )

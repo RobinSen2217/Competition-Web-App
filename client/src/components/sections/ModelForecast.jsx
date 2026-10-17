@@ -10,7 +10,7 @@ import { Btn, Card, CardHead, Kicker, Lede, Readout, ReadoutItem, ReadoutWhen, S
 import { cx, noteCls } from '../../styles/classes'
 
 /*
-  "Machine-learning forecast" card, under the baseline Outlook.
+  "Machine-learning forecast" card in the Forecast part of the page.
   Shows the 12-month NDVI forecast of the team notebook's three models (Ridge,
   neural network, gradient boosting), run by the server's forecasting module
   (server/ml) or read from its saved snapshot (lib/forecasts.js). The models
@@ -33,7 +33,7 @@ const MODELS = [
   { k: 'gbm', label: 'Gradient boosting', color: '--s3' },
 ]
 const ALL = 'all'
-// Months of observations shown before the forecast, as in Outlook.
+// Months of observations shown before the forecast (about three years).
 const HISTORY = 36
 const TOP_DRIVERS = 5
 
@@ -138,7 +138,7 @@ export default function ModelForecast() {
   // scored best on unseen data, and say so.
   const focus = single || [...models].sort((a, b) => (b.metrics?.test?.r2 ?? -Infinity) - (a.metrics?.test?.r2 ?? -Infinity))[0]
 
-  // Hover is tagged with what was on screen (as in Outlook), so it clears itself on any change
+  // Hover is tagged with what was on screen, so it clears itself on any change
   const viewKey = reqKey + '|' + mode + '|' + showHind
   const [hoverState, setHoverState] = useState({ key: '', x: null })
   const hover = hoverState.key === viewKey ? hoverState.x : null

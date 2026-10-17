@@ -31,7 +31,7 @@ const SCRIPT = [
   'Data analysis covers every measure: greenness, or N D V I, rainfall, air and land surface temperature, soil moisture, humidity, albedo, U V, aerosol, wind and sunshine.',
   'It also shows what drives greenness, and compares the cities with each other.',
   'Map and plot has a satellite map with yearly greenness layers, a swipe view, the history of any pixel, and an area planner, plus a plot builder with downloads.',
-  'Forecast gives a statistical baseline for the next three to six months.',
+  'Forecast shows what the team\'s machine-learning models expect for greenness over the next twelve months, and how far to trust them.',
   'Then come the Science behind it, answers to common questions, and how to contact the team.',
   'All data comes from NASA MODIS and NASA POWER, monthly since 2010.',
   'Thanks for listening, and enjoy exploring.',

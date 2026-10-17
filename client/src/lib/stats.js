@@ -82,26 +82,6 @@ export function corr(a, b) {
   return sab / Math.sqrt(saa * sbb)
 }
 
-// Baseline forecast: climatology + linear trend on anomalies + decaying persistence
-// of the last 3 months' residual. 80% band = ±1.28 sd.
-export function forecast(a, h) {
-  const c = clim(a)
-  const an = a.map((v, i) => (v == null ? null : v - c[mOf(i)]))
-  const pts = an.map((v, i) => (v == null ? null : [i, v])).filter(Boolean)
-  if (pts.length < 36) return null
-  const f = ols(pts.map((p) => [1, p[0]]), pts.map((p) => p[1]))
-  const fit = (i) => f.b[0] + f.b[1] * i
-  const li = lastIdx(a)
-  const recent = pts.filter((p) => p[0] > li - 3).map((p) => p[1] - fit(p[0]))
-  const pers = recent.reduce((s, x) => s + x, 0) / recent.length
-  const out = []
-  for (let k = 1; k <= h; k++) {
-    const i = li + k, m = (mOf(li) + k) % 12, v = c[m] + fit(i) + pers * Math.pow(0.6, k)
-    out.push({ i, v, lo: v - 1.28 * f.sd, hi: v + 1.28 * f.sd, m })
-  }
-  return { li, out, perDecade: f.b[1] * 120, sd: f.sd, clim: c }
-}
-
 // Latest NDVI against the usual value for that calendar month.
 export function ndviStatus(c) {
   const a = ser(c, 'ndvi'), li = lastIdx(a), cl = clim(a), d = ((a[li] - cl[mOf(li)]) / cl[mOf(li)]) * 100
