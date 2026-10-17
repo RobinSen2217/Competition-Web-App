@@ -383,8 +383,13 @@ because the notebook's forest cannot be reproduced with scikit-learn 1.9,
 while the NDVI models stay on their 1.9.1 pin (1.8 would change their GBM
 hindcast in the 5th decimal). `build` refuses scikit-learn >= 1.9 unless
 `--any-sklearn` is given. On an Apple Silicon Mac, create the venv as x86-64
-(Rosetta) and run it with `arch -x86_64 .venv-hazards/bin/python ...` for
-bit-exact results (see "Reproducing the notebook").
+(Rosetta) for bit-exact results (see "Reproducing the notebook").
+
+Run it through `./hazards-python`, not `.venv-hazards/bin/python`: the venv's
+python binary may be universal, so a plain call on Apple Silicon starts as
+arm64 and then cannot load an x86-64 scikit-learn. The launcher looks at the
+installed scikit-learn and re-runs under `arch -x86_64` only when it is x86-64
+on an arm64 Mac; elsewhere it calls the venv's python directly.
 
 ### Import: the normalized dataset
 
@@ -467,6 +472,15 @@ produced the printed results, reconstructed from the execution counts:
 `tests/notebook_flood_partb.py` is a near-verbatim copy of those cells; a
 test checks the module against it row by row.
 
+Two notebook quirks are kept on purpose, because "fixing" them would change
+the printed numbers:
+
+- pass times are floored to the UTC date (`load_frames`, `.dt.floor('D')`),
+  so a soil moisture pass late on a UTC day already feeds that same day's
+  forecast;
+- when two passes fall on one day, only the last one in the file is used
+  (`merge_soil`, `drop_duplicates('date_utc', keep='last')`).
+
 What the build adds: **every day of every event** gets a probability per
 model and a danger class (`probability >= threshold`). Test events are scored
 by the final model; training events by their **out-of-fold** model (the fold
@@ -519,7 +533,8 @@ FLOOD_SOURCE_DIR=/path/with/rainfall+soil_moisture ./hazards-python -m unittest 
 FLOOD_LAYERS_DIR=/path/with/water_reference_tifs ./hazards-python -m unittest -v tests.test_hazards_layers
 ```
 
-(prefix `arch -x86_64` on Apple Silicon). `test_hazards_import.py`: the
+(the launcher picks the architecture; on an arm64 venv the two bit-exact
+acceptance tests skip with the reason). `test_hazards_import.py`: the
 import on a synthetic source tree (values kept as written, booleans, source
 order, notes split, curated facts, bbox from a float32 GeoTIFF, errors) and
 the committed dataset's consistency. `test_hazards_flood.py`: the building

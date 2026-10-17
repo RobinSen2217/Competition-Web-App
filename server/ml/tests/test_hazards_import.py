@@ -6,7 +6,7 @@ With FLOOD_SOURCE_DIR set to a folder holding the team's `rainfall/` and
 `soil_moisture/` folders, the committed dataset is also re-imported from them
 and compared file by file:
 
-    FLOOD_SOURCE_DIR=/path/to/flood .venv-hazards/bin/python -m unittest -v tests.test_hazards_import
+    FLOOD_SOURCE_DIR=/path/to/flood ./hazards-python -m unittest -v tests.test_hazards_import
 """
 
 import csv
@@ -149,7 +149,7 @@ class ImportSynthetic(unittest.TestCase):
         self.assertEqual(m['hazard'], 'flood')
         self.assertEqual(m['interval'], 'daily')
         self.assertEqual(set(m['tables']), {'daily', 'soil_passes'})
-        self.assertEqual(m['tables']['soil_passes']['kind'], 'observations')
+        self.assertEqual(m['tables']['soil_passes']['kind'], 'observation')
         self.assertEqual([e['id'] for e in m['events']], ['ev_a', 'ev_b'])
         a, b = m['events']
         self.assertEqual(a['name'], 'River floods (ev_a)')

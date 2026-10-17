@@ -35,7 +35,6 @@ getOnly(router, '/hazards/:hazard/parameters/:key', async (req, res) => {
   ok(res, servicesOf(req).getHazardParameter(req.params.hazard, req.params.key))
 })
 
-// ?country= (list of ISO codes or names), ?bbox=west,south,east,north
 // ?country= (list of ISO codes or names), ?bbox=west,south,east,north, ?include=layers
 getOnly(router, '/hazards/:hazard/events', async (req, res) => {
   const svc = servicesOf(req)

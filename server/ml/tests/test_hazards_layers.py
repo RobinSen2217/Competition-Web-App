@@ -7,7 +7,7 @@ With FLOOD_LAYERS_DIR set to the folder holding the notebook's
 <event>_water_reference.tif files, the committed layers are also rebuilt from
 them and compared byte for byte:
 
-    FLOOD_LAYERS_DIR=/path/to/tifs .venv-hazards/bin/python -m unittest -v tests.test_hazards_layers
+    FLOOD_LAYERS_DIR=/path/to/tifs ./hazards-python -m unittest -v tests.test_hazards_layers
 """
 
 import hashlib

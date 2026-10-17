@@ -78,7 +78,7 @@
  * @property {string[]} columns          header
  * @property {string[][]} rows           CSV cells as strings ("" = no value), file order
  * @property {string} timeColumn         column holding the UTC date (YYYY-MM-DD)
- * @property {'series'|'observations'} kind  one row per interval step, or irregular rows
+ * @property {'series'|'observation'} kind  one row per interval step, or irregular rows
  * @property {string} updated            ISO time the file was written
  */
 

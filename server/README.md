@@ -311,10 +311,10 @@ The hazard step has its **own Python environment**, `ml/.venv-hazards`
 (`requirements-hazards.txt`): the notebook's numbers need scikit-learn 1.8
 (1.9 changed how random forests sample), and the NDVI module stays on its own
 pins. On an Apple Silicon Mac create it as x86-64, like Colab, to get the
-notebook's numbers bit for bit (`arch -x86_64 python3 -m venv .venv-hazards`,
-then `arch -x86_64 .venv-hazards/bin/pip install -r requirements-hazards.txt`
-and prefix the commands with `arch -x86_64`); see the ml README for what
-differs otherwise. The server needs neither: the committed files are enough.
+notebook's numbers bit for bit (`arch -x86_64 python3.12 -m venv .venv-hazards`,
+then `arch -x86_64 .venv-hazards/bin/pip install -r requirements-hazards.txt`).
+`./hazards-python` then runs it under Rosetta by itself, so the commands above
+work unchanged with either venv; see the ml README for what differs on arm64. The server needs neither: the committed files are enough.
 Commit `data/hazards/` after an import or a build; the running server picks
 the files up without a restart.
 

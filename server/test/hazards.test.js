@@ -62,7 +62,7 @@ describe('hazard types', () => {
     const data = assertOk(await srv.get(URL))
     assert.equal(data.id, 'flood')
     assert.deepEqual(Object.keys(data.dataset.tables), ['daily', 'soil_passes'])
-    assert.equal(data.dataset.tables.soil_passes.kind, 'observations')
+    assert.equal(data.dataset.tables.soil_passes.kind, 'observation')
     assert.deepEqual(data.dataset.datasets.map((d) => d.doi), ['10.5067/GPM/IMERGDL/DAY/07', '10.5067/NIL3SME2-P1'])
     const m = data.forecast
     assert.equal(m.events, undefined, 'per-day results stay in the event forecast')

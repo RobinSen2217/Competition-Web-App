@@ -735,7 +735,7 @@ model that saw it:
 | --- | --- |
 | `test` | one of the 3 held-out test events (Guangxi, Bhagalpur, Bangkok): the final model, trained on the 6 training events |
 | `out_of_fold` | a training event: the cross-validation model that held this event out (GroupKFold, 5 folds over whole events), i.e. the notebook's out-of-fold probabilities, which also chose the thresholds |
-| `unseen` | an event added later that the model never trained on: the final model |
+| `unseen` | an event with no target rows (so it could not train), not a test event: the final model, which never saw it. A new event with target rows becomes a training event on the next `build` (see "New events for a hazard") |
 | `excluded` | left out on purpose (Nepal: a glacier collapse, not rain); `available: false` |
 | `not_scored` | a training event whose fold could not be fit; `available: false` |
 
@@ -960,7 +960,8 @@ change:
    `name`, `country`, `admin`, `place`, `period` {`start`, `end`, ...},
    `bbox` [W, S, E, N], `center`, `cause`, `coverage`, `files`, `sources`;
    `tables` naming each per-event CSV with its `kind` `series` or
-   `observations` and a `file` pattern with `{eventId}`; `datasets` with
+   `observation` (the same words as the parameter kinds) and a `file` pattern
+   with `{eventId}`; `datasets` with
    citations) and the CSVs (a `date` column, `YYYY-MM-DD` UTC). The layout is
    documented in `forecaster/hazards/dataset.py`.
 2. Meaning: `src/catalog/hazards/<hazard>.js` (id, label, description,
@@ -1004,18 +1005,37 @@ cd server/ml
 ./hazards-python -m forecaster.hazards import flood --layers /folder/with/<event>_water_reference.tif
 ```
 
-(`arch -x86_64` first on Apple Silicon.) The source GeoTIFFs are not
+(`./hazards-python` runs an x86-64 venv under Rosetta on Apple Silicon by
+itself.) The source GeoTIFFs are not
 committed; only the PNGs and `layers.json` are.
 
 **New events for a hazard.** Add them to the sources and re-run the import
-(`python -m forecaster.hazards import flood --rainfall ... --soil ...`), then
-`build` (see `server/ml/README.md`, "Hazards"). Curated facts the files do
+(`./hazards-python -m forecaster.hazards import flood --rainfall ... --soil ...`),
+then `build` (see `server/ml/README.md`, "Hazards"). Curated facts the files do
 not carry (country, admin area, cause) go in
 `forecaster/hazards/flood_events.json`. The server re-reads changed files on
-the next request; no restart. An event the model did not train on is scored
-by the final model (`role: "unseen"`); note that rebuilding with new
-training events changes the model, which then no longer equals the
-notebook's (the build's `notebookCheck` says so).
+the next request; no restart.
+
+What a rebuild does with them:
+
+- `build` always retrains from scratch on every event in the dataset. A new
+  event with target rows (it has `in_flood_period` labels and at least 4 days)
+  joins the training events, so the cross-validation folds, the thresholds and
+  the final model all change, and the model no longer equals the notebook's
+  (the build's `notebookCheck` says so). Only the 3 test events are fixed by name.
+- `role: "unseen"` applies only to an event with **no** target rows: it
+  cannot train, so the final model scores it.
+- No fitted model is saved. `build` writes only the scores
+  (`model/forecast.json`); scoring an event later means rebuilding.
+
+**Notebook quirks kept on purpose.** Both reproduce the notebook (cell 34)
+and change its numbers if "fixed":
+
+- Pass times are floored to the UTC date, so a soil moisture pass late on a
+  UTC day already feeds that same day's forecast (`flood.py`, `load_frames`:
+  `.dt.floor('D')`), even if it came after the day's rain.
+- When two passes fall on one day, only the last one in the file is used
+  (`merge_soil`: `drop_duplicates('date_utc', keep='last')`).
 
 **Live hazard data.** Write a hazard provider with the methods of
 `HazardProvider` (`src/providers/types.js`: `getDataset`, `listEvents`,

@@ -26,7 +26,7 @@ Flood events with daily satellite rainfall over each event box (GPM IMERG) and t
 | `cells_with_data` | Number of IMERG cells in the box with a value that day |
 | `in_flood_period` | true on the days of the reported flood period (flood_start..flood_end), false on the 7 days of lead-up rain before it |
 
-## `soil_passes` (observations)
+## `soil_passes` (observation)
 
 | column | meaning |
 |---|---|

@@ -99,7 +99,7 @@ def write_dataset(base, events):
     manifest = {
         'hazard': 'flood', 'version': 1, 'interval': 'daily',
         'tables': {'daily': {'kind': 'series', 'file': 'events/{eventId}/daily.csv', 'timeColumn': 'date', 'columns': {}},
-                   'soil_passes': {'kind': 'observations', 'file': 'events/{eventId}/soil_passes.csv', 'timeColumn': 'date', 'columns': {}}},
+                   'soil_passes': {'kind': 'observation', 'file': 'events/{eventId}/soil_passes.csv', 'timeColumn': 'date', 'columns': {}}},
         'events': records,
     }
     (base / 'events.json').write_text(json.dumps(manifest))

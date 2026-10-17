@@ -1,7 +1,7 @@
 """Acceptance: the flood model reproduces what flood_disaster.ipynb (Part B)
 printed, from the committed dataset in server/data/hazards/flood.
 
-    .venv-hazards/bin/python -m unittest -v tests.test_hazards_flood_acceptance
+    ./hazards-python -m unittest -v tests.test_hazards_flood_acceptance
 
 Expected values are copied from the notebook's outputs (cells 28, 34, 36).
 They are printed to 3 decimals, so a value passes when it rounds to the

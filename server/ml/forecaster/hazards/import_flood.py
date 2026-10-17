@@ -477,7 +477,7 @@ def import_flood(rainfall, soil, out=None, meta_file=META_FILE, layers=None):
         'tables': {
             'daily': {'kind': 'series', 'interval': 'daily', 'file': 'events/{eventId}/daily.csv', 'timeColumn': 'date',
                       'columns': DAILY_DOCS},
-            'soil_passes': {'kind': 'observations', 'file': 'events/{eventId}/soil_passes.csv', 'timeColumn': 'date',
+            'soil_passes': {'kind': 'observation', 'file': 'events/{eventId}/soil_passes.csv', 'timeColumn': 'date',
                             'columns': SOIL_DOCS},
         },
         'datasets': [

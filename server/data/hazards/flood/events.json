@@ -19,7 +19,7 @@
       }
     },
     "soil_passes": {
-      "kind": "observations",
+      "kind": "observation",
       "file": "events/{eventId}/soil_passes.csv",
       "timeColumn": "date",
       "columns": {

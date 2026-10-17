@@ -15,7 +15,7 @@ model (and read by the Node server's hazard provider, src/providers/hazards.js):
 
 `events.json` names its tables in `tables`: {name: {kind, file, timeColumn,
 columns}} where kind is "series" (one row per interval step) or
-"observations" (irregular rows, e.g. one per satellite pass), and `file` is a
+"observation" (irregular rows, e.g. one per satellite pass), and `file` is a
 pattern with "{eventId}". Every CSV has a `date` column (YYYY-MM-DD, UTC).
 Values are copied from the sources as written (no float round trip), empty =
 no value, booleans as `true` / `false`.
